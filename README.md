@@ -4,7 +4,7 @@
 
 ### From HACS
 
-1. Install HACS if you haven't already (see [installation guide](https://hacs.netlify.com/docs/installation/manual)).
+1. Install HACS if you haven't already (see [installation guide](https://hacs.xyz/docs/use/download/download/)).
 2. Add custom repository `https://github.com/Meaxl/soehnle-ac500` as "Integration" in the settings tab of HACS.
 3. Find and install "Soehnle AC500" intergration in HACS's "Integrations" tab.
 4. Restart your Home Assistant.
