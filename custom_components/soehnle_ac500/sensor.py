@@ -1,0 +1,91 @@
+"""Sensor entities – PM2.5, Temperature, Humidity."""
+from __future__ import annotations
+
+import logging
+
+from homeassistant.components.sensor import (
+    SensorDeviceClass,
+    SensorEntity,
+    SensorStateClass,
+)
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import CONF_NAME, UnitOfTemperature, PERCENTAGE
+from homeassistant.core import HomeAssistant
+from homeassistant.helpers.entity_platform import AddEntitiesCallback
+
+from .const import DOMAIN
+from .coordinator import AC500Coordinator
+from .entity_base import AC500EntityBase
+
+_LOGGER = logging.getLogger(__name__)
+
+
+async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry,
+                            async_add_entities: AddEntitiesCallback) -> None:
+    coordinator: AC500Coordinator = hass.data[DOMAIN][entry.entry_id]
+    device_name = entry.data.get(CONF_NAME, "Soehnle AC500")
+    async_add_entities([
+        AC500PM25Sensor(coordinator, entry, device_name),
+        AC500TempSensor(coordinator, entry, device_name),
+        AC500HumSensor(coordinator, entry, device_name),
+    ])
+
+
+class _SensorBase(AC500EntityBase, SensorEntity):
+    _attr_state_class = SensorStateClass.MEASUREMENT
+
+    def __init__(self, coordinator, entry, device_name, suffix):
+        super().__init__(coordinator, entry, suffix)
+
+
+class AC500PM25Sensor(_SensorBase):
+    _attr_device_class               = SensorDeviceClass.PM25
+    _attr_native_unit_of_measurement = "µg/m³"
+    _attr_icon                       = "mdi:air-filter"
+    _attr_suggested_display_precision = 1
+
+    def __init__(self, coordinator, entry, device_name):
+        super().__init__(coordinator, entry, device_name, "pm25")
+        self._attr_name = f"{device_name} PM2.5"
+
+    @property
+    def native_value(self) -> float | None:
+        return self._coordinator.state.pm25 if self._coordinator.state.ever_seen else None
+
+
+class AC500TempSensor(_SensorBase):
+    _attr_device_class               = SensorDeviceClass.TEMPERATURE
+    _attr_native_unit_of_measurement = UnitOfTemperature.CELSIUS
+    _attr_suggested_display_precision = 1
+
+    def __init__(self, coordinator, entry, device_name):
+        super().__init__(coordinator, entry, device_name, "temperature")
+        self._attr_name = f"{device_name} Temperature"
+
+    @property
+    def available(self) -> bool:
+        return (self._coordinator.state.ever_seen
+                and self._coordinator.state.temperature is not None)
+
+    @property
+    def native_value(self) -> float | None:
+        return self._coordinator.state.temperature
+
+
+class AC500HumSensor(_SensorBase):
+    _attr_device_class               = SensorDeviceClass.HUMIDITY
+    _attr_native_unit_of_measurement = PERCENTAGE
+    _attr_icon                       = "mdi:water-percent"
+
+    def __init__(self, coordinator, entry, device_name):
+        super().__init__(coordinator, entry, device_name, "humidity")
+        self._attr_name = f"{device_name} Humidity"
+
+    @property
+    def available(self) -> bool:
+        return (self._coordinator.state.ever_seen
+                and self._coordinator.state.humidity is not None)
+
+    @property
+    def native_value(self) -> int | None:
+        return self._coordinator.state.humidity
