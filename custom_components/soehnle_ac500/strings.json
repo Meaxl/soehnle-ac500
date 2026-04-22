@@ -1,0 +1,16 @@
+{
+    "config": {
+        "step": {
+            "user": {
+                "title": "Soehnle Airfresh Clean Connect 500",
+                "data": {
+                    "address": "Device Bluetooth MAC Address",
+                    "name": "Device Name"
+                }
+            }
+        },
+        "abort": {
+            "already_configured": "Device already configured."
+        }
+    }
+}
