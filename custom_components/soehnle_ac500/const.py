@@ -25,7 +25,7 @@ FLAG_POWER = 0x01
 FLAG_UVC   = 0x02
 FLAG_TIMER = 0x04
 FLAG_AUTO  = 0x20
-FLAG_NIGHT = 0xC0
+FLAG_NIGHT = 0x40
 
 SPEED_MAP     = {0: "speed_1", 1: "speed_2", 2: "speed_3", 3: "speed_4"}
 SPEED_MAP_INV = {v: k for k, v in SPEED_MAP.items()}
