@@ -41,7 +41,7 @@ class AC500EntityBase(Entity):
             name          = device_name,
             manufacturer  = "Soehnle",
             model         = "Airfresh Clean Connect 500",
-            sw_version    = "0.0.2",
+            sw_version    = "0.0.1",
             connections   = {("bluetooth", address)},
         )
 
