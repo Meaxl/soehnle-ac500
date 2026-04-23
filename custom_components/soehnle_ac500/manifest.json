@@ -1,7 +1,7 @@
 {
   "domain": "soehnle_ac500",
   "name": "Soehnle Airfresh Clean Connect 500",
-  "version": "0.0.2",
+  "version": "0.0.1",
   "documentation": "https://github.com/Meaxl/AC500_bl-reverse-engineering",
   "requirements": ["bleak>=0.21.1", "bleak-retry-connector>=3.0.0"],
   "dependencies": ["bluetooth"],
