@@ -13,7 +13,7 @@
 ### Manual
 
 1. Download and unzip the [repo archive](https://github.com/Meaxl/soehnle-ac500/archive/master.zip). (You could also click "Download ZIP" after pressing the green button in the repo, alternatively, you could clone the repo from SSH add-on).
-2. Copy contents of the archive/repo into your `/config` directory.
+2. Copy contents of the archive/repo (`custom_components/soehnle_ac500/.`) into your `/config` directory.
 3. Restart your Home Assistant.
 4. Add "Soehnle AC500" integration in Home Assistant's "Configuration -> Integrations" tab.
 
