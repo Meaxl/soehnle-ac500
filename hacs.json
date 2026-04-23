@@ -3,4 +3,5 @@
   "homeassistant": "2023.8",
   "zip_release": "true",
   "filename": "soehnle_ac500.zip"
+  "hide_default_branch": false
 }
