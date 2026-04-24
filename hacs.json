@@ -1,7 +1,9 @@
 {
-  "name": "Soehnle AC500",
+  "name": "Soehnle Airfresh Clean Connect 500",
+  "description": "Local BLE integration for the Soehnle Airfresh Clean Connect 500 air purifier. Controls fan speed, UV-C, Night Mode, Auto Mode and timer via Bluetooth LE. Provides real-time PM2.5, temperature and humidity sensors.",
+  "render_readme": true,
   "homeassistant": "2023.8",
   "zip_release": "true",
-  "filename": "soehnle_ac500.zip"
+  "filename": "soehnle_ac500.zip",
   "hide_default_branch": false
 }
