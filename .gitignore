@@ -21,6 +21,8 @@ __pycache__
 *.DS_Store
 
 # Directory (contents) ignores
+.git
+.github
 .cloud
 .google.token
 .vscode
