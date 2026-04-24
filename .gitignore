@@ -1,0 +1,26 @@
+# Whitelist files/folders with !, these will not be ignored.
+!*.py
+!*.json
+!*.
+!.gitignore
+!*.md
+
+# Certificate ignore
+/certificate
+/ssl
+*.pem
+
+# Generic ignores
+*.log
+*.db
+*.db-shm
+*.db-wal
+*.pyc
+._*
+__pycache__
+*.DS_Store
+
+# Directory (contents) ignores
+.cloud
+.google.token
+.vscode
