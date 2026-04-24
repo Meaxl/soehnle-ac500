@@ -25,6 +25,7 @@ class AC500ConnectivitySensor(AC500EntityBase, BinarySensorEntity):
     """Shows live BLE connection status. Always available (shows 'off' when disconnected)."""
 
     _attr_device_class = BinarySensorDeviceClass.CONNECTIVITY
+    _attr_entity_registry_enabled_default = False
 
     def __init__(self, coordinator: AC500Coordinator,
                  entry: ConfigEntry) -> None:
