@@ -99,24 +99,24 @@ class AC500HumSensor(_SensorBase):
 # PM2.5 thresholds based on WHO 2021 / EPA AQI breakpoints
 def _pm25_to_quality(pm25: float) -> str:
     if pm25 <= 12.0:
-        return "good"
+        return "Good"
     if pm25 <= 35.4:
-        return "moderate"
+        return "Moderate"
     if pm25 <= 55.4:
-        return "unhealthy_sensitive"
+        return "Unhealthy_sensitive"
     if pm25 <= 150.4:
-        return "unhealthy"
+        return "Unhealthy"
     if pm25 <= 250.4:
-        return "very_unhealthy"
-    return "hazardous"
+        return "Very_unhealthy"
+    return "Hazardous"
 
 
 class AC500AirQualitySensor(AC500EntityBase, SensorEntity):
     """Categorical air quality derived from PM2.5 reading."""
 
     _attr_device_class  = SensorDeviceClass.ENUM
-    _attr_options       = ["good", "moderate", "unhealthy_sensitive",
-                           "unhealthy", "very_unhealthy", "hazardous"]
+    _attr_options       = ["Good", "Moderate", "Unhealthy_sensitive",
+                           "Unhealthy", "Very_unhealthy", "Hazardous"]
     _attr_icon          = "mdi:leaf"
 
     def __init__(self, coordinator, entry, device_name):
