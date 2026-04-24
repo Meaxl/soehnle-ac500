@@ -18,6 +18,7 @@ PLATFORMS = [
     Platform.SWITCH,
     Platform.SENSOR,
     Platform.SELECT,
+    Platform.BINARY_SENSOR,
 ]
 
 

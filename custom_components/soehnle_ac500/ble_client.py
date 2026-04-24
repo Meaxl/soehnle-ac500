@@ -36,6 +36,10 @@ class AC500State:
     # ── Environmental sensors (EF04 snapshot) ───────────────────────────
     temperature: float | None = None   # °C
     humidity:    int   | None = None   # % RH
+    # ── EF04 unknown pairs (diagnostic / reverse-engineering) ───────────
+    ef04_pair0:  int   | None = None   # purpose unknown
+    ef04_pair2:  int   | None = None   # purpose unknown
+    ef04_pair3:  int   | None = None   # purpose unknown
     # ── Connection state ────────────────────────────────────────────────
     connected:   bool  = False    # True = BLE link active right now
     ever_seen:   bool  = False    # True = received at least one valid EF02
@@ -81,11 +85,24 @@ class AC500State:
             return False
         pairs = [int.from_bytes(data[i:i+2], "big") for i in range(0, len(data), 2)]
         old_temp, old_hum = self.temperature, self.humidity
+        old_p0, old_p2, old_p3 = self.ef04_pair0, self.ef04_pair2, self.ef04_pair3
+
         if len(pairs) >= 2 and pairs[1] != 0xFFFF:
             self.temperature = round(pairs[1] / 10, 1)
         if len(pairs) >= 5 and pairs[4] != 0xFFFF and pairs[4] <= 100:
             self.humidity = pairs[4]
-        return self.temperature != old_temp or self.humidity != old_hum
+
+        # Capture unknown pairs for diagnostic purposes
+        if len(pairs) >= 1 and pairs[0] != 0xFFFF:
+            self.ef04_pair0 = pairs[0]
+        if len(pairs) >= 3 and pairs[2] != 0xFFFF:
+            self.ef04_pair2 = pairs[2]
+        if len(pairs) >= 4 and pairs[3] != 0xFFFF:
+            self.ef04_pair3 = pairs[3]
+
+        return (self.temperature != old_temp or self.humidity != old_hum
+                or self.ef04_pair0 != old_p0 or self.ef04_pair2 != old_p2
+                or self.ef04_pair3 != old_p3)
 
 
 class AC500BleClient:
