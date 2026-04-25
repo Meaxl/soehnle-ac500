@@ -19,8 +19,9 @@
 ._*
 __pycache__
 *.DS_Store
-
+*.csv
 # Directory (contents) ignores
+/logs
 .git
 .github
 .cloud
