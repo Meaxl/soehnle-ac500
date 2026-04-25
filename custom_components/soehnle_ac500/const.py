@@ -8,7 +8,8 @@ UUID_EF02  = "0000EF02-0000-1000-8000-00805F9B34FB"
 UUID_EF03  = "0000EF03-0000-1000-8000-00805F9B34FB"
 UUID_EF04  = "0000EF04-0000-1000-8000-00805F9B34FB"
 
-# ── Service d0ff – proprietary (filter data candidates, read-only) ────────────
+# ── Service d0ff – proprietary ───────────────────────────────────────────────
+UUID_FFD1  = "0000FFD1-0000-1000-8000-00805F9B34FB"  # write-without-response
 UUID_FFD2  = "0000FFD2-0000-1000-8000-00805F9B34FB"
 UUID_FFD3  = "0000FFD3-0000-1000-8000-00805F9B34FB"
 UUID_FFD4  = "0000FFD4-0000-1000-8000-00805F9B34FB"
@@ -28,15 +29,14 @@ UUID_FFF1  = "0000FFF1-0000-1000-8000-00805F9B34FB"
 # ── EF03 Characteristic (purpose unknown) ───────────────────────────────────
 # Subscribed for reverse-engineering; raw hex logged via AC500EF03RawSensor
 #
-# ── EF04 Snapshot (on connect) ───────────────────────────────────────────────
-# pair[0] = unknown  (cycles 29/18/10 – possibly PM fractions or fan feedback)
-# pair[1] = Temperature ÷10 °C    (confirmed)
-# pair[2] = unknown  (cycles 28/10)
-# pair[3] = unknown  (cycles 190/192/195 – possibly internal temps ÷10)
-# pair[4] = Humidity % RH         (unconfirmed)
-# pair[5] = unknown  (to be investigated)
-# pair[6] = unknown  (to be investigated – filter usage candidate)
-# pair[7] = unknown  (to be investigated – filter usage candidate)
+# ── EF04 History Buffer (on connect) ─────────────────────────────────────────
+# EF04 is a circular history buffer of (PM2.5_raw, temp×10) measurement pairs.
+# Structure per 20-byte frame: 5 × (PM2.5_raw u16, temp×10 u16) big-endian
+# Framing: preceded by 0x01 (init), terminated by 0xFF
+# even-indexed pairs (0,2,4,…) = PM2.5 raw (÷10 = µg/m³)
+# odd-indexed  pairs (1,3,5,…) = Temperature×10 (÷10 = °C)
+# Last valid odd pair = most recent temperature reading
+# NO humidity sensor on this device – pair[4] is PM2.5 history, not humidity
 
 FLAG_POWER = 0x01
 FLAG_UVC   = 0x02

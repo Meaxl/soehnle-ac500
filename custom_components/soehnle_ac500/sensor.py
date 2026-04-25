@@ -1,4 +1,4 @@
-"""Sensor entities – PM2.5, Temperature, Humidity, Air Quality, EF04 diagnostics."""
+"""Sensor entities – PM2.5, Temperature, Air Quality, EF04/EF02 diagnostics."""
 from __future__ import annotations
 
 import logging
@@ -9,7 +9,7 @@ from homeassistant.components.sensor import (
     SensorStateClass,
 )
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import CONF_NAME, UnitOfTemperature, PERCENTAGE
+from homeassistant.const import CONF_NAME, UnitOfTemperature
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
@@ -28,7 +28,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry,
     async_add_entities([
         AC500PM25Sensor(coordinator, entry, device_name),
         AC500TempSensor(coordinator, entry, device_name),
-        AC500HumSensor(coordinator, entry, device_name),
         AC500AirQualitySensor(coordinator, entry, device_name),
         AC500EF04DiagSensor(coordinator, entry, device_name, 0, "ef04_pair0"),
         AC500EF04DiagSensor(coordinator, entry, device_name, 2, "ef04_pair2"),
@@ -85,20 +84,6 @@ class AC500TempSensor(_SensorBase):
     @property
     def native_value(self) -> float | None:
         return self._coordinator.state.temperature
-
-
-class AC500HumSensor(_SensorBase):
-    _attr_device_class               = SensorDeviceClass.HUMIDITY
-    _attr_native_unit_of_measurement = PERCENTAGE
-    _attr_icon                       = "mdi:water-percent"
-
-    def __init__(self, coordinator, entry, device_name):
-        super().__init__(coordinator, entry, device_name, "humidity")
-        self._attr_name = f"{device_name} Humidity"
-
-    @property
-    def native_value(self) -> int | None:
-        return self._coordinator.state.humidity
 
 
 # PM2.5 thresholds based on WHO 2021 / EPA AQI breakpoints
