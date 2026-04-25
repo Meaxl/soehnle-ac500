@@ -87,11 +87,6 @@ class AC500HumSensor(_SensorBase):
         self._attr_name = f"{device_name} Humidity"
 
     @property
-    def available(self) -> bool:
-        return (self._coordinator.state.ever_seen
-                and self._coordinator.state.humidity is not None)
-
-    @property
     def native_value(self) -> int | None:
         return self._coordinator.state.humidity
 
