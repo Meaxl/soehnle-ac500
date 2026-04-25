@@ -17,9 +17,18 @@ UUID_EF04  = "0000EF04-0000-1000-8000-00805F9B34FB"
 # p[4]  PM2.5 raw  : ÷10 = µg/m³  (e.g. 50 → 5.0 µg/m³)
 # p[11] checksum   : (p0+p1+p2+p4+p6+p10+0xC0) & 0xFF
 #
+# ── EF03 Characteristic (purpose unknown) ───────────────────────────────────
+# Subscribed for reverse-engineering; raw hex logged via AC500EF03RawSensor
+#
 # ── EF04 Snapshot (on connect) ───────────────────────────────────────────────
+# pair[0] = unknown  (cycles 29/18/10 – possibly PM fractions or fan feedback)
 # pair[1] = Temperature ÷10 °C    (confirmed)
+# pair[2] = unknown  (cycles 28/10)
+# pair[3] = unknown  (cycles 190/192/195 – possibly internal temps ÷10)
 # pair[4] = Humidity % RH         (unconfirmed)
+# pair[5] = unknown  (to be investigated)
+# pair[6] = unknown  (to be investigated – filter usage candidate)
+# pair[7] = unknown  (to be investigated – filter usage candidate)
 
 FLAG_POWER = 0x01
 FLAG_UVC   = 0x02

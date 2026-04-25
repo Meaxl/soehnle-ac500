@@ -14,7 +14,7 @@ from bleak_retry_connector import (
 )
 
 from .const import (
-    UUID_WRITE, UUID_EF02, UUID_EF04,
+    UUID_WRITE, UUID_EF02, UUID_EF03, UUID_EF04,
     FLAG_POWER, FLAG_UVC, FLAG_TIMER, FLAG_AUTO, FLAG_NIGHT,
     SPEED_MAP, COMMANDS,
 )
@@ -37,9 +37,15 @@ class AC500State:
     temperature: float | None = None   # °C
     humidity:    int   | None = None   # % RH
     # ── EF04 unknown pairs (diagnostic / reverse-engineering) ───────────
-    ef04_pair0:  int   | None = None   # purpose unknown
-    ef04_pair2:  int   | None = None   # purpose unknown
-    ef04_pair3:  int   | None = None   # purpose unknown
+    ef04_pair0:   int   | None = None   # purpose unknown
+    ef04_pair2:   int   | None = None   # purpose unknown
+    ef04_pair3:   int   | None = None   # purpose unknown
+    ef04_pair5:   int   | None = None   # purpose unknown
+    ef04_pair6:   int   | None = None   # purpose unknown
+    ef04_pair7:   int   | None = None   # purpose unknown
+    ef04_raw_hex: str   | None = None   # full raw payload for analysis
+    # ── EF03 unknown characteristic ─────────────────────────────────────
+    ef03_raw_hex: str   | None = None   # raw EF03 payload (purpose unknown)
     # ── Connection state ────────────────────────────────────────────────
     connected:   bool  = False    # True = BLE link active right now
     ever_seen:   bool  = False    # True = received at least one valid EF02
@@ -84,25 +90,30 @@ class AC500State:
         if len(data) < 4 or len(data) % 2 != 0:
             return False
         pairs = [int.from_bytes(data[i:i+2], "big") for i in range(0, len(data), 2)]
-        old_temp, old_hum = self.temperature, self.humidity
-        old_p0, old_p2, old_p3 = self.ef04_pair0, self.ef04_pair2, self.ef04_pair3
+        old = (self.temperature, self.humidity,
+               self.ef04_pair0, self.ef04_pair2, self.ef04_pair3,
+               self.ef04_pair5, self.ef04_pair6, self.ef04_pair7,
+               self.ef04_raw_hex)
 
         if len(pairs) >= 2 and pairs[1] != 0xFFFF:
             self.temperature = round(pairs[1] / 10, 1)
         if len(pairs) >= 5 and pairs[4] != 0xFFFF and pairs[4] <= 100:
             self.humidity = pairs[4]
 
-        # Capture unknown pairs for diagnostic purposes
-        if len(pairs) >= 1 and pairs[0] != 0xFFFF:
-            self.ef04_pair0 = pairs[0]
-        if len(pairs) >= 3 and pairs[2] != 0xFFFF:
-            self.ef04_pair2 = pairs[2]
-        if len(pairs) >= 4 and pairs[3] != 0xFFFF:
-            self.ef04_pair3 = pairs[3]
+        # Capture unknown pairs for diagnostic / reverse-engineering
+        _diag = {0: "ef04_pair0", 2: "ef04_pair2", 3: "ef04_pair3",
+                 5: "ef04_pair5", 6: "ef04_pair6", 7: "ef04_pair7"}
+        for idx, attr in _diag.items():
+            if len(pairs) > idx and pairs[idx] != 0xFFFF:
+                setattr(self, attr, pairs[idx])
 
-        return (self.temperature != old_temp or self.humidity != old_hum
-                or self.ef04_pair0 != old_p0 or self.ef04_pair2 != old_p2
-                or self.ef04_pair3 != old_p3)
+        self.ef04_raw_hex = data.hex()
+
+        new = (self.temperature, self.humidity,
+               self.ef04_pair0, self.ef04_pair2, self.ef04_pair3,
+               self.ef04_pair5, self.ef04_pair6, self.ef04_pair7,
+               self.ef04_raw_hex)
+        return old != new
 
 
 class AC500BleClient:
@@ -140,6 +151,19 @@ class AC500BleClient:
             )
             await self._client.start_notify(UUID_EF02, self._notify_ef02)
             await self._client.start_notify(UUID_EF04, self._notify_ef04)
+            try:
+                await self._client.start_notify(UUID_EF03, self._notify_ef03)
+                _LOGGER.info("AC500 subscribed to EF03 (unknown characteristic)")
+            except BleakError as err:
+                _LOGGER.warning("AC500 EF03 not available: %s", err)
+
+            # Log all BLE services and characteristics for reverse-engineering
+            _LOGGER.info("AC500 BLE service map:")
+            for svc in self._client.services:
+                _LOGGER.info("  Service %s", svc.uuid)
+                for char in svc.characteristics:
+                    _LOGGER.info("    Char %s  props=%s", char.uuid, char.properties)
+
             self.state.connected = True
             _LOGGER.info("AC500 connected via bleak_retry_connector")
             self._notify_ha()
@@ -193,6 +217,13 @@ class AC500BleClient:
 
     def _notify_ef02(self, _sender, raw: bytearray) -> None:
         if self.state.parse_ef02(bytes(raw)):
+            self._notify_ha()
+
+    def _notify_ef03(self, _sender, raw: bytearray) -> None:
+        hex_str = bytes(raw).hex()
+        _LOGGER.info("EF03 notification: %s", hex_str)
+        if self.state.ef03_raw_hex != hex_str:
+            self.state.ef03_raw_hex = hex_str
             self._notify_ha()
 
     def _notify_ef04(self, _sender, raw: bytearray) -> None:

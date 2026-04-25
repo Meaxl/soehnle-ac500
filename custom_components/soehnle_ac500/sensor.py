@@ -33,6 +33,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry,
         AC500EF04DiagSensor(coordinator, entry, device_name, 0, "ef04_pair0"),
         AC500EF04DiagSensor(coordinator, entry, device_name, 2, "ef04_pair2"),
         AC500EF04DiagSensor(coordinator, entry, device_name, 3, "ef04_pair3"),
+        AC500EF04DiagSensor(coordinator, entry, device_name, 5, "ef04_pair5"),
+        AC500EF04DiagSensor(coordinator, entry, device_name, 6, "ef04_pair6"),
+        AC500EF04DiagSensor(coordinator, entry, device_name, 7, "ef04_pair7"),
+        AC500EF04RawSensor(coordinator, entry, device_name),
+        AC500EF03RawSensor(coordinator, entry, device_name),
     ])
 
 
@@ -146,3 +151,42 @@ class AC500EF04DiagSensor(AC500EntityBase, SensorEntity):
     @property
     def native_value(self) -> int | None:
         return getattr(self._coordinator.state, self._state_attr)
+
+
+class AC500EF04RawSensor(AC500EntityBase, SensorEntity):
+    """Full raw EF04 payload as hex – for payload length and unknown bytes analysis."""
+
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_icon            = "mdi:format-list-numbered"
+
+    def __init__(self, coordinator, entry, device_name) -> None:
+        super().__init__(coordinator, entry, "ef04_raw_hex")
+        self._attr_name = f"{device_name} EF04 Raw Payload"
+
+    @property
+    def available(self) -> bool:
+        return (self._coordinator.state.ever_seen
+                and self._coordinator.state.ef04_raw_hex is not None)
+
+    @property
+    def native_value(self) -> str | None:
+        return self._coordinator.state.ef04_raw_hex
+
+
+class AC500EF03RawSensor(AC500EntityBase, SensorEntity):
+    """Full raw EF03 payload as hex – characteristic purpose unknown."""
+
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_icon            = "mdi:help-rhombus-outline"
+
+    def __init__(self, coordinator, entry, device_name) -> None:
+        super().__init__(coordinator, entry, "ef03_raw_hex")
+        self._attr_name = f"{device_name} EF03 Raw Payload"
+
+    @property
+    def available(self) -> bool:
+        return self._coordinator.state.ef03_raw_hex is not None
+
+    @property
+    def native_value(self) -> str | None:
+        return self._coordinator.state.ef03_raw_hex
