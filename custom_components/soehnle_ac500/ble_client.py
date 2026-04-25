@@ -54,6 +54,9 @@ class AC500State:
     ffd4_raw_hex: str   | None = None
     ffd5_raw_hex: str   | None = None
     fff1_raw_hex: str   | None = None
+    # ── Filter lifetime data (from EF02 p[7:9] / p[9:11]) ──────────────
+    filter_total_hours: int = 0   # big-endian uint16 at p[7:9], e.g. 4320
+    filter_used_hours:  int = 0   # big-endian uint16 at p[9:11], e.g. 758
     # ── Connection state ────────────────────────────────────────────────
     connected:   bool  = False    # True = BLE link active right now
     ever_seen:   bool  = False    # True = received at least one valid EF02
@@ -61,6 +64,18 @@ class AC500State:
     @property
     def pm25(self) -> float:
         return round(self.pm25_raw / 10, 1)
+
+    @property
+    def filter_pct_used(self) -> float | None:
+        if self.filter_total_hours == 0:
+            return None
+        return round(self.filter_used_hours / self.filter_total_hours * 100, 1)
+
+    @property
+    def filter_remaining_hours(self) -> int | None:
+        if self.filter_total_hours == 0:
+            return None
+        return max(0, self.filter_total_hours - self.filter_used_hours)
 
     @property
     def timer_hours(self) -> int:
@@ -77,7 +92,8 @@ class AC500State:
             return False
 
         old = (self.power, self.uvc, self.night, self.auto,
-               self.timer_on, self.timer_val, self.speed, self.pm25_raw)
+               self.timer_on, self.timer_val, self.speed, self.pm25_raw,
+               self.filter_total_hours, self.filter_used_hours)
 
         flags          = p[2]
         self.power     = bool(flags & FLAG_POWER)
@@ -88,10 +104,14 @@ class AC500State:
         self.speed     = p[0]
         self.timer_val = p[1]
         self.pm25_raw  = p[4]
+        # p[7:9] = filter total lifetime (hours), p[9:11] = filter hours used
+        self.filter_total_hours = int.from_bytes(p[7:9], "big")
+        self.filter_used_hours  = int.from_bytes(p[9:11], "big")
         self.ever_seen = True
 
         new = (self.power, self.uvc, self.night, self.auto,
-               self.timer_on, self.timer_val, self.speed, self.pm25_raw)
+               self.timer_on, self.timer_val, self.speed, self.pm25_raw,
+               self.filter_total_hours, self.filter_used_hours)
         return old != new
 
     def parse_ef04(self, data: bytes) -> bool:

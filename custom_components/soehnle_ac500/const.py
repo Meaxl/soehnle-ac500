@@ -18,13 +18,17 @@ UUID_FFF1  = "0000FFF1-0000-1000-8000-00805F9B34FB"
 
 # ── EF02 Frame Layout ────────────────────────────────────────────────────────
 # aa 0d a0 21 | p0  p1  p2  p3  p4  p5  p6  p7  p8  p9  p10 p11 | ee
-#               spd tmr flg 00  pm  00  adc 10  e0  02  adc chk
+#               spd tmr flg 00  pm  00  adc  [filter_total_h]  [filter_used_h]  chk
+#                                              p7   p8   p9   p10
 #
-# p[0]  fan speed  : 0=Spd1  1=Spd2  2=Spd3  3=Spd4
-# p[1]  timer hrs  : 0=OFF   2=2h    4=4h    8=8h
-# p[2]  flags      : bit0=Power bit1=UVC bit2=Timer bit5=Auto bit6+7=Night
-# p[4]  PM2.5 raw  : ÷10 = µg/m³  (e.g. 50 → 5.0 µg/m³)
-# p[11] checksum   : (p0+p1+p2+p4+p6+p10+0xC0) & 0xFF
+# p[0]  fan speed        : 0=Spd1  1=Spd2  2=Spd3  3=Spd4
+# p[1]  timer hrs        : 0=OFF   2=2h    4=4h    8=8h
+# p[2]  flags            : bit0=Power bit1=UVC bit2=Timer bit5=Auto bit6+7=Night
+# p[4]  PM2.5 raw        : ÷10 = µg/m³  (e.g. 50 → 5.0 µg/m³)
+# p[6]  ADC reading      : ~209 (differential pressure / flow sensor)
+# p[7:9]  filter total   : big-endian uint16, filter lifetime in hours (4320h)
+# p[9:11] filter used    : big-endian uint16, hours the filter has been used
+# p[11] checksum         : (p0+p1+p2+p4+p6+p10+0xC0) & 0xFF
 #
 # ── EF03 Characteristic (purpose unknown) ───────────────────────────────────
 # Subscribed for reverse-engineering; raw hex logged via AC500EF03RawSensor

@@ -1,4 +1,4 @@
-"""Sensor entities – PM2.5, Temperature, Air Quality, EF04/EF02 diagnostics."""
+"""Sensor entities – PM2.5, Temperature, Air Quality, Filter, EF04/EF02 diagnostics."""
 from __future__ import annotations
 
 import logging
@@ -9,7 +9,7 @@ from homeassistant.components.sensor import (
     SensorStateClass,
 )
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import CONF_NAME, UnitOfTemperature
+from homeassistant.const import CONF_NAME, UnitOfTemperature, PERCENTAGE
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
@@ -29,6 +29,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry,
         AC500PM25Sensor(coordinator, entry, device_name),
         AC500TempSensor(coordinator, entry, device_name),
         AC500AirQualitySensor(coordinator, entry, device_name),
+        AC500FilterUsedSensor(coordinator, entry, device_name),
+        AC500FilterRemainingSensor(coordinator, entry, device_name),
+        AC500FilterPctSensor(coordinator, entry, device_name),
         AC500EF04DiagSensor(coordinator, entry, device_name, 0, "ef04_pair0"),
         AC500EF04DiagSensor(coordinator, entry, device_name, 2, "ef04_pair2"),
         AC500EF04DiagSensor(coordinator, entry, device_name, 3, "ef04_pair3"),
@@ -118,6 +121,69 @@ class AC500AirQualitySensor(AC500EntityBase, SensorEntity):
         if not self._coordinator.state.ever_seen:
             return None
         return _pm25_to_quality(self._coordinator.state.pm25)
+
+
+class AC500FilterUsedSensor(_SensorBase):
+    """Filter hours used – extracted from EF02 p[9:11]."""
+
+    _attr_native_unit_of_measurement = "h"
+    _attr_icon                       = "mdi:air-filter"
+    _attr_suggested_display_precision = 0
+
+    def __init__(self, coordinator, entry, device_name):
+        super().__init__(coordinator, entry, device_name, "filter_used_hours")
+        self._attr_name = f"{device_name} Filter Used Hours"
+
+    @property
+    def available(self) -> bool:
+        return (self._coordinator.state.ever_seen
+                and self._coordinator.state.filter_total_hours > 0)
+
+    @property
+    def native_value(self) -> int | None:
+        return self._coordinator.state.filter_used_hours
+
+
+class AC500FilterRemainingSensor(_SensorBase):
+    """Filter hours remaining – calculated from EF02 filter data."""
+
+    _attr_native_unit_of_measurement = "h"
+    _attr_icon                       = "mdi:air-filter"
+    _attr_suggested_display_precision = 0
+
+    def __init__(self, coordinator, entry, device_name):
+        super().__init__(coordinator, entry, device_name, "filter_remaining_hours")
+        self._attr_name = f"{device_name} Filter Remaining Hours"
+
+    @property
+    def available(self) -> bool:
+        return (self._coordinator.state.ever_seen
+                and self._coordinator.state.filter_total_hours > 0)
+
+    @property
+    def native_value(self) -> int | None:
+        return self._coordinator.state.filter_remaining_hours
+
+
+class AC500FilterPctSensor(_SensorBase):
+    """Filter usage percentage – matches app display."""
+
+    _attr_native_unit_of_measurement = PERCENTAGE
+    _attr_icon                       = "mdi:air-filter"
+    _attr_suggested_display_precision = 1
+
+    def __init__(self, coordinator, entry, device_name):
+        super().__init__(coordinator, entry, device_name, "filter_pct_used")
+        self._attr_name = f"{device_name} Filter Usage"
+
+    @property
+    def available(self) -> bool:
+        return (self._coordinator.state.ever_seen
+                and self._coordinator.state.filter_total_hours > 0)
+
+    @property
+    def native_value(self) -> float | None:
+        return self._coordinator.state.filter_pct_used
 
 
 class AC500EF04DiagSensor(AC500EntityBase, SensorEntity):
