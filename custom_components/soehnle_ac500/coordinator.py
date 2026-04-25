@@ -41,7 +41,9 @@ class AC500Coordinator(DataUpdateCoordinator):
     async def async_start(self) -> None:
         self._running = True
         self._client.register_callback(self._on_state_change)
-        self._task = self.hass.async_create_task(self._connection_loop())
+        self._task = self.hass.async_create_background_task(
+            self._connection_loop(), name="AC500 connection loop"
+        )
 
     async def async_stop(self) -> None:
         self._running = False
