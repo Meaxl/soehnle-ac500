@@ -191,6 +191,7 @@ class AC500EF04DiagSensor(AC500EntityBase, SensorEntity):
 
     _attr_state_class    = SensorStateClass.MEASUREMENT
     _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_entity_registry_enabled_default = False
     _attr_icon           = "mdi:help-rhombus-outline"
 
     def __init__(self, coordinator, entry, device_name, pair_idx: int,
@@ -213,6 +214,7 @@ class AC500EF04RawSensor(AC500EntityBase, SensorEntity):
     """Full raw EF04 payload as hex – for payload length and unknown bytes analysis."""
 
     _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_entity_registry_enabled_default = False
     _attr_icon            = "mdi:format-list-numbered"
 
     def __init__(self, coordinator, entry, device_name) -> None:
@@ -249,9 +251,10 @@ class AC500EF03RawSensor(AC500EntityBase, SensorEntity):
 
 
 class AC500D0FFRawSensor(AC500EntityBase, SensorEntity):
-    """Raw hex value of a d0ff service read-only characteristic (filter data candidate)."""
+    """Raw hex value of a d0ff service read-only characteristic (static device identifier)."""
 
     _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_entity_registry_enabled_default = False
     _attr_icon            = "mdi:filter-cog-outline"
 
     def __init__(self, coordinator, entry, device_name, char_name: str) -> None:
