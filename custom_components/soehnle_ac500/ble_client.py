@@ -15,7 +15,7 @@ from bleak_retry_connector import (
 
 from .const import (
     UUID_WRITE, UUID_EF02, UUID_EF03, UUID_EF04,
-    UUID_FFD1, UUID_FFD2, UUID_FFD3, UUID_FFD4, UUID_FFD5, UUID_FFF1,
+    UUID_FFD2, UUID_FFD3, UUID_FFD4, UUID_FFD5, UUID_FFF1,
     FLAG_POWER, FLAG_UVC, FLAG_TIMER, FLAG_AUTO, FLAG_NIGHT,
     SPEED_MAP, COMMANDS,
 )
@@ -161,7 +161,6 @@ class AC500BleClient:
         self._lock         = asyncio.Lock()
         self.state         = AC500State()
         self._callbacks: list[Callable] = []
-        self._ffd1_probed  = False   # probe FFD1 only once per session
 
     def register_callback(self, cb: Callable) -> None:
         self._callbacks.append(cb)
@@ -188,12 +187,8 @@ class AC500BleClient:
             except BleakError as err:
                 _LOGGER.warning("AC500 EF03 not available: %s", err)
 
-            # Read proprietary d0ff characteristics (filter data candidates)
+            # Read proprietary d0ff service characteristics (static identifiers)
             await self._read_d0ff_chars()
-
-            # One-time: probe FFD1 with common query bytes to see if EF03 responds
-            if not self._ffd1_probed:
-                await self._probe_ffd1()
 
             self.state.connected = True
             _LOGGER.info("AC500 connected via bleak_retry_connector")
@@ -246,22 +241,6 @@ class AC500BleClient:
                 self._notify_ha()
                 return False
 
-    async def _probe_ffd1(self) -> None:
-        """Send query bytes to FFD1 once and watch for EF03 response."""
-        self._ffd1_probed = True
-        # Try common single-byte queries and the aa..ee frame format
-        probes = [b"\x00", b"\x01", b"\xff",
-                  bytes.fromhex("aa0306000000aee")]  # aa-frame style query
-        for payload in probes:
-            try:
-                _LOGGER.info("FFD1 probe: %s", payload.hex())
-                await self._client.write_gatt_char(
-                    UUID_FFD1, bytearray(payload), response=False
-                )
-                await asyncio.sleep(0.3)   # brief pause for potential EF03 reply
-            except BleakError as err:
-                _LOGGER.warning("FFD1 probe %s failed: %s", payload.hex(), err)
-
     async def _read_d0ff_chars(self) -> None:
         """Read all readable d0ff service characteristics after connecting."""
         candidates = [
@@ -276,7 +255,7 @@ class AC500BleClient:
             try:
                 data = bytes(await self._client.read_gatt_char(uuid))
                 hex_str = data.hex()
-                _LOGGER.info("AC500 %s (%d bytes): %s", name.upper(), len(data), hex_str)
+                _LOGGER.debug("AC500 %s (%d bytes): %s", name.upper(), len(data), hex_str)
                 attr = f"{name}_raw_hex"
                 if getattr(self.state, attr) != hex_str:
                     setattr(self.state, attr, hex_str)
@@ -288,7 +267,7 @@ class AC500BleClient:
 
     def _notify_ef02(self, _sender, raw: bytearray) -> None:
         data = bytes(raw)
-        _LOGGER.info("EF02 raw (%d bytes): %s", len(data), data.hex())
+        _LOGGER.debug("EF02 raw (%d bytes): %s", len(data), data.hex())
         if self.state.parse_ef02(data):
             self._notify_ha()
 
@@ -301,7 +280,7 @@ class AC500BleClient:
 
     def _notify_ef04(self, _sender, raw: bytearray) -> None:
         data = bytes(raw)
-        _LOGGER.info("EF04 raw (%d bytes): %s", len(data), data.hex())
+        _LOGGER.debug("EF04 raw (%d bytes): %s", len(data), data.hex())
         if len(data) > 2 and self.state.parse_ef04(data):
             self._notify_ha()
 
