@@ -2,10 +2,18 @@
 
 DOMAIN = "soehnle_ac500"
 
+# ── Service ffa0 – main control / sensor notifications ───────────────────────
 UUID_WRITE = "0000EF01-0000-1000-8000-00805F9B34FB"
 UUID_EF02  = "0000EF02-0000-1000-8000-00805F9B34FB"
 UUID_EF03  = "0000EF03-0000-1000-8000-00805F9B34FB"
 UUID_EF04  = "0000EF04-0000-1000-8000-00805F9B34FB"
+
+# ── Service d0ff – proprietary (filter data candidates, read-only) ────────────
+UUID_FFD2  = "0000FFD2-0000-1000-8000-00805F9B34FB"
+UUID_FFD3  = "0000FFD3-0000-1000-8000-00805F9B34FB"
+UUID_FFD4  = "0000FFD4-0000-1000-8000-00805F9B34FB"
+UUID_FFD5  = "0000FFD5-0000-1000-8000-00805F9B34FB"
+UUID_FFF1  = "0000FFF1-0000-1000-8000-00805F9B34FB"
 
 # ── EF02 Frame Layout ────────────────────────────────────────────────────────
 # aa 0d a0 21 | p0  p1  p2  p3  p4  p5  p6  p7  p8  p9  p10 p11 | ee

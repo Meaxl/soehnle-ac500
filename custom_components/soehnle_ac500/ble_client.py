@@ -15,6 +15,7 @@ from bleak_retry_connector import (
 
 from .const import (
     UUID_WRITE, UUID_EF02, UUID_EF03, UUID_EF04,
+    UUID_FFD2, UUID_FFD3, UUID_FFD4, UUID_FFD5, UUID_FFF1,
     FLAG_POWER, FLAG_UVC, FLAG_TIMER, FLAG_AUTO, FLAG_NIGHT,
     SPEED_MAP, COMMANDS,
 )
@@ -46,6 +47,12 @@ class AC500State:
     ef04_raw_hex: str   | None = None   # full raw payload for analysis
     # ── EF03 unknown characteristic ─────────────────────────────────────
     ef03_raw_hex: str   | None = None   # raw EF03 payload (purpose unknown)
+    # ── d0ff service read-only chars (filter data candidates) ───────────
+    ffd2_raw_hex: str   | None = None
+    ffd3_raw_hex: str   | None = None
+    ffd4_raw_hex: str   | None = None
+    ffd5_raw_hex: str   | None = None
+    fff1_raw_hex: str   | None = None
     # ── Connection state ────────────────────────────────────────────────
     connected:   bool  = False    # True = BLE link active right now
     ever_seen:   bool  = False    # True = received at least one valid EF02
@@ -153,16 +160,12 @@ class AC500BleClient:
             await self._client.start_notify(UUID_EF04, self._notify_ef04)
             try:
                 await self._client.start_notify(UUID_EF03, self._notify_ef03)
-                _LOGGER.info("AC500 subscribed to EF03 (unknown characteristic)")
+                _LOGGER.debug("AC500 subscribed to EF03")
             except BleakError as err:
                 _LOGGER.warning("AC500 EF03 not available: %s", err)
 
-            # Log all BLE services and characteristics for reverse-engineering
-            _LOGGER.info("AC500 BLE service map:")
-            for svc in self._client.services:
-                _LOGGER.info("  Service %s", svc.uuid)
-                for char in svc.characteristics:
-                    _LOGGER.info("    Char %s  props=%s", char.uuid, char.properties)
+            # Read proprietary d0ff characteristics (filter data candidates)
+            await self._read_d0ff_chars()
 
             self.state.connected = True
             _LOGGER.info("AC500 connected via bleak_retry_connector")
@@ -215,6 +218,30 @@ class AC500BleClient:
                 self._notify_ha()
                 return False
 
+    async def _read_d0ff_chars(self) -> None:
+        """Read all readable d0ff service characteristics after connecting."""
+        candidates = [
+            ("ffd2", UUID_FFD2),
+            ("ffd3", UUID_FFD3),
+            ("ffd4", UUID_FFD4),
+            ("ffd5", UUID_FFD5),
+            ("fff1", UUID_FFF1),
+        ]
+        changed = False
+        for name, uuid in candidates:
+            try:
+                data = bytes(await self._client.read_gatt_char(uuid))
+                hex_str = data.hex()
+                _LOGGER.info("AC500 %s (%d bytes): %s", name.upper(), len(data), hex_str)
+                attr = f"{name}_raw_hex"
+                if getattr(self.state, attr) != hex_str:
+                    setattr(self.state, attr, hex_str)
+                    changed = True
+            except BleakError as err:
+                _LOGGER.warning("AC500 read %s failed: %s", name.upper(), err)
+        if changed:
+            self._notify_ha()
+
     def _notify_ef02(self, _sender, raw: bytearray) -> None:
         if self.state.parse_ef02(bytes(raw)):
             self._notify_ha()
@@ -228,6 +255,7 @@ class AC500BleClient:
 
     def _notify_ef04(self, _sender, raw: bytearray) -> None:
         data = bytes(raw)
+        _LOGGER.info("EF04 raw (%d bytes): %s", len(data), data.hex())
         if len(data) > 2 and self.state.parse_ef04(data):
             self._notify_ha()
 

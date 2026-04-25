@@ -38,6 +38,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry,
         AC500EF04DiagSensor(coordinator, entry, device_name, 7, "ef04_pair7"),
         AC500EF04RawSensor(coordinator, entry, device_name),
         AC500EF03RawSensor(coordinator, entry, device_name),
+        AC500D0FFRawSensor(coordinator, entry, device_name, "ffd2"),
+        AC500D0FFRawSensor(coordinator, entry, device_name, "ffd3"),
+        AC500D0FFRawSensor(coordinator, entry, device_name, "ffd4"),
+        AC500D0FFRawSensor(coordinator, entry, device_name, "ffd5"),
+        AC500D0FFRawSensor(coordinator, entry, device_name, "fff1"),
     ])
 
 
@@ -190,3 +195,23 @@ class AC500EF03RawSensor(AC500EntityBase, SensorEntity):
     @property
     def native_value(self) -> str | None:
         return self._coordinator.state.ef03_raw_hex
+
+
+class AC500D0FFRawSensor(AC500EntityBase, SensorEntity):
+    """Raw hex value of a d0ff service read-only characteristic (filter data candidate)."""
+
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_icon            = "mdi:filter-cog-outline"
+
+    def __init__(self, coordinator, entry, device_name, char_name: str) -> None:
+        super().__init__(coordinator, entry, f"{char_name}_raw_hex")
+        self._char_attr   = f"{char_name}_raw_hex"
+        self._attr_name   = f"{device_name} {char_name.upper()} Raw"
+
+    @property
+    def available(self) -> bool:
+        return getattr(self._coordinator.state, self._char_attr) is not None
+
+    @property
+    def native_value(self) -> str | None:
+        return getattr(self._coordinator.state, self._char_attr)
