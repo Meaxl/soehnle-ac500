@@ -4,6 +4,7 @@
 !*.
 !.gitignore
 !*.md
+!.github/workflows/*.
 
 # Certificate ignore
 /certificate
