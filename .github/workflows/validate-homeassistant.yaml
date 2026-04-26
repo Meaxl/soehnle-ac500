@@ -30,7 +30,10 @@ jobs:
 
       # 🧹 Linting (schnell & modern)
       - name: Run ruff
-        run: ruff check .
+        run: |
+          ruff check .
+          ruff check --fix .
+          ruff check .
 
       # 🎨 Format prüfen (ohne zu ändern)
       - name: Check formatting with black
