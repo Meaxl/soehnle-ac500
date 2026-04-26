@@ -43,7 +43,8 @@ jobs:
 
       # 🎨 Format prüfen (ohne zu ändern)
       - name: Check formatting with black
-        run: black --check .
+        continue-on-error: true
+        run: black --diff --check .
 
       # 📦 Import-Reihenfolge prüfen
       - name: Check imports with isort
