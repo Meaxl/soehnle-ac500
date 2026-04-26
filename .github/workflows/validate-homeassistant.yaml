@@ -1,9 +1,10 @@
 name: Validate Home Assistant Integration
 
 on:
+  workflow_dispatch:
   #push:
   #pull_request:
-  workflow_dispatch:
+  #workflow_dispatch:
 
 jobs:
   validate:
