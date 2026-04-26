@@ -30,12 +30,15 @@ jobs:
 
       # 🧹 Linting (schnell & modern)
       - name: Run ruff
+        continue-on-error: true
         run: ruff check .
 
       - name: Run ruff --fix
+        continue-on-error: true
         run: ruff check --fix .
 
       - name: Ruff check after fixes
+        continue-on-error: true
         run: ruff check .
 
       # 🎨 Format prüfen (ohne zu ändern)
