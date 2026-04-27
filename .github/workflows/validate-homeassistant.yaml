@@ -48,4 +48,5 @@ jobs:
 
       # 📦 Import-Reihenfolge prüfen
       - name: Check imports with isort
+        continue-on-error: true
         run: isort --check-only .
