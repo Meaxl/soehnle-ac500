@@ -33,11 +33,12 @@ Eine inoffizielle Home Assistant Custom Component zur lokalen Steuerung des **So
 | Lüftergeschwindigkeit (4 Stufen) | Funktionsfähig |
 | Automatikmodus | Funktionsfähig |
 | UV-C Licht | Funktionsfähig |
+| Nachtmodus | IN ENTWICKLUNG |
 | Timer (2h / 4h / 8h) | Funktionsfähig |
 | PM2.5 Feinstaubsensor | Funktionsfähig |
 | Temperatursensor | Funktionsfähig |
-| Nachtmodus | In Entwicklung |
-| Luftfeuchtigkeitssensor | Nicht bestätigt |
+| Luftqualitätssensor | Funktionsfähig |
+| Filter-Nutzungsanzeige | Funktionsfähig |
 
 ---
 
@@ -110,15 +111,35 @@ Nach erfolgreicher Einrichtung werden folgende Entitäten erstellt:
 | Entität | Beschreibung |
 |---|---|
 | UV-C | Schaltet die UV-C-Entkeimungslampe ein/aus |
-| Nachtmodus | Aktiviert den leisen Nachtbetrieb *(in Entwicklung)* |
+| Night Mode | Aktiviert den leisen Nachtbetrieb, Lichter aus|
 
 ### Sensoren (`sensor`)
 
-| Entität | Einheit | Geräteklasse |
+| Entität | Einheit | Beschreibung |
 |---|---|---|
-| PM2.5 | µg/m³ | `pm25` |
-| Temperatur | °C | `temperature` |
-| Luftfeuchtigkeit | % | `humidity` *(nicht bestätigt)* |
+| PM2.5 | µg/m³ | Feinstaubkonzentration in Echtzeit |
+| Temperatur | °C | Raumtemperatur (aus EF04-History-Buffer) |
+| Luftqualität | – | Kategorisch: `Good` / `Moderate` / `Unhealthy_sensitive` / `Unhealthy` / `Very_unhealthy` / `Hazardous` |
+| Filter Used Hours | h | Bisherige Betriebsstunden des Filters |
+| Filter Remaining Hours | h | Verbleibende Stunden bis zum Filterwechsel |
+| Filter Usage | % | Prozentualer Filterverbrauch (entspricht App-Anzeige) |
+
+### Diagnose-Sensoren (`sensor` – standardmäßig deaktiviert)
+
+Diese Sensoren sind für Debugging und Reverse-Engineering gedacht und standardmäßig deaktiviert. Sie können unter **Einstellungen → Geräte & Dienste → Entitäten** manuell aktiviert werden.
+
+| Entität | Beschreibung |
+|---|---|
+| EF03 Raw Payload | Rohdaten der EF03-Charakteristik (Zweck noch unbekannt) |
+| EF04 Pair0/2/3/5/6/7 (raw) | Einzelne Paare des EF04-History-Buffers |
+| EF04 Raw Payload | Vollständiger EF04-Rohpayload als Hex-String |
+| FFD2 / FFD3 / FFD4 / FFD5 / FFF1 Raw | Statische Gerätekennungen des d0ff-BLE-Service |
+
+### Binärsensor (`binary_sensor` – standardmäßig deaktiviert)
+
+| Entität | Beschreibung |
+|---|---|
+| Connection | Zeigt den aktuellen BLE-Verbindungsstatus (`on` = verbunden) |
 
 ### Auswahl (`select`)
 
@@ -130,10 +151,9 @@ Nach erfolgreicher Einrichtung werden folgende Entitäten erstellt:
 
 ## Bekannte Einschränkungen
 
-- **Nachtmodus:** Die Schalter-Entität ist vorhanden, die Funktion ist jedoch noch nicht vollständig implementiert und getestet.
-- **Luftfeuchtigkeit:** Der Sensor wird ausgelesen, die Werte wurden noch nicht mit einem Referenzgerät validiert.
 - **Bluetooth-Reichweite:** Die Verbindungsqualität hängt direkt von der Entfernung und möglichen Hindernissen zwischen Bluetooth-Adapter und Gerät ab.
 - **Einzelverbindung:** Das Gerät kann jeweils nur mit einer BLE-Quelle verbunden sein. Während Home Assistant verbunden ist, ist die Original-App möglicherweise nicht nutzbar.
+- **Diagnose-Sensoren:** Standardmäßig deaktiviert, da sie für den normalen Betrieb nicht benötigt werden. Die EF03-Charakteristik wird überwacht, ihr genauer Zweck ist jedoch noch nicht vollständig bekannt.
 
 ---
 
@@ -145,9 +165,17 @@ Die Integration kommuniziert ausschließlich über Bluetooth Low Energy mit dem 
 
 | UUID | Richtung | Beschreibung |
 |---|---|---|
-| `EF01` | Schreiben | Befehle senden (Steuerung) |
-| `EF02` | Lesen / Notify | Gerätezustand (Lüfter, PM2.5, Flags) |
-| `EF04` | Lesen | Umgebungsdaten (Temperatur, Luftfeuchtigkeit) |
+| `EF01` | Schreiben | Steuerbefehle (Ein/Aus, Geschwindigkeit, Modi) |
+| `EF02` | Notify | Gerätezustand: Lüfterdaten, Flags, PM2.5, Filterdaten |
+| `EF03` | Notify | Unbekannte Charakteristik (wird überwacht) |
+| `EF04` | Notify | History-Buffer: abwechselnde (PM2.5_raw, Temp×10)-Paare |
+| `FFD2–FFF1` | Lesen | Statische Gerätekennungen (proprietärer d0ff-Service) |
+
+**EF02-Filterdaten (reverse-engineered):**
+
+Die Filterdaten sind direkt im EF02-Notify-Frame kodiert:
+- Bytes `p[7:9]` (big-endian uint16) = Filter-Gesamtlaufzeit in Stunden (z. B. `0x10E0` = 4320 h)
+- Bytes `p[9:11]` (big-endian uint16) = bisher genutzte Filterstunden
 
 **Verbindungsmanagement:**
 - Wiederverbindungsintervall: 5 Sekunden
