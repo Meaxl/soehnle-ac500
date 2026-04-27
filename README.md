@@ -33,7 +33,7 @@ Eine inoffizielle Home Assistant Custom Component zur lokalen Steuerung des **So
 | Lüftergeschwindigkeit (4 Stufen) | Funktionsfähig |
 | Automatikmodus | Funktionsfähig |
 | UV-C Licht | Funktionsfähig |
-| Nachtmodus | Funktionsfähig |
+| Nachtmodus | IN ENTWICKLUNG |
 | Timer (2h / 4h / 8h) | Funktionsfähig |
 | PM2.5 Feinstaubsensor | Funktionsfähig |
 | Temperatursensor | Funktionsfähig |
@@ -111,7 +111,7 @@ Nach erfolgreicher Einrichtung werden folgende Entitäten erstellt:
 | Entität | Beschreibung |
 |---|---|
 | UV-C | Schaltet die UV-C-Entkeimungslampe ein/aus |
-| Night Mode | Aktiviert den leisen Nachtbetrieb |
+| Night Mode | Aktiviert den leisen Nachtbetrieb, Lichter aus|
 
 ### Sensoren (`sensor`)
 
