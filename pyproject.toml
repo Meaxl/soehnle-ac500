@@ -1,0 +1,78 @@
+[tool.ruff]
+# Exclude some ignored files and folders
+exclude = [
+    ".claude",
+    ".git",
+    ".git-rewrite",
+    ".gitignore",
+    ".pyenv",
+    ".pytest_cache",
+    ".pytype",
+    ".ruff_cache",
+    ".venv",
+    ".vscode",
+    "__pycache__",
+    "__pypackages__",
+    "_build",
+    "buck-out",
+    "build",
+    "dist",
+    "node_modules",
+    "site-packages",
+    "venv",
+    "hacs.json",
+    "strings.json",
+    "manifest.json",
+    "LICENSE",
+    "README.md",
+
+    "bin/*",
+    "include/*",
+    "lib/*",
+    "soehnle_ac500_extensive.log",
+    "soehnle_ac500_pairs.log",
+    "*/.venv/*",
+    "*/venv/*",
+    ]
+
+# Same as Black.
+line-length = 88
+indent-width = 4
+
+# Assume Python 3.10
+target-version = "py310"
+
+[tool.ruff.lint]
+# Enable specific rule sets
+select = [
+    "E",    # pycodestyle errors
+    "W",    # pycodestyle warnings
+    "F",    # Pyflakes
+    "UP",   # pyupgrade
+    "B",    # flake8-bugbear
+    "I",    # isort
+]
+
+
+# Ignore specific rules
+ignore = [
+    "E501",  # line too long
+    "B008",  # do not perform function calls in argument defaults
+]
+
+# Allow fixing specific rules
+fixable = ["ALL"]
+unfixable = []
+
+[tool.ruff.format]
+# Use double quotes for strings
+quote-style = "double"
+
+# Indent with spaces
+indent-style = "space"
+
+# Use trailing commas
+skip-magic-trailing-comma = false
+
+# Auto-detect line ending
+line-ending = "auto"

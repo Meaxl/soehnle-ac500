@@ -2,24 +2,45 @@
 
 DOMAIN = "soehnle_ac500"
 
+# ── Service ffa0 – main control / sensor notifications ───────────────────────
 UUID_WRITE = "0000EF01-0000-1000-8000-00805F9B34FB"
 UUID_EF02  = "0000EF02-0000-1000-8000-00805F9B34FB"
 UUID_EF03  = "0000EF03-0000-1000-8000-00805F9B34FB"
 UUID_EF04  = "0000EF04-0000-1000-8000-00805F9B34FB"
 
+# ── Service d0ff – proprietary ───────────────────────────────────────────────
+UUID_FFD1  = "0000FFD1-0000-1000-8000-00805F9B34FB"  # write-without-response
+UUID_FFD2  = "0000FFD2-0000-1000-8000-00805F9B34FB"
+UUID_FFD3  = "0000FFD3-0000-1000-8000-00805F9B34FB"
+UUID_FFD4  = "0000FFD4-0000-1000-8000-00805F9B34FB"
+UUID_FFD5  = "0000FFD5-0000-1000-8000-00805F9B34FB"
+UUID_FFF1  = "0000FFF1-0000-1000-8000-00805F9B34FB"
+
 # ── EF02 Frame Layout ────────────────────────────────────────────────────────
 # aa 0d a0 21 | p0  p1  p2  p3  p4  p5  p6  p7  p8  p9  p10 p11 | ee
-#               spd tmr flg 00  pm  00  adc 10  e0  02  adc chk
+#               spd tmr flg 00  pm  00  adc  [filter_total_h]  [filter_used_h]  chk
+#                                              p7   p8   p9   p10
 #
-# p[0]  fan speed  : 0=Spd1  1=Spd2  2=Spd3  3=Spd4
-# p[1]  timer hrs  : 0=OFF   2=2h    4=4h    8=8h
-# p[2]  flags      : bit0=Power bit1=UVC bit2=Timer bit5=Auto bit6+7=Night
-# p[4]  PM2.5 raw  : ÷10 = µg/m³  (e.g. 50 → 5.0 µg/m³)
-# p[11] checksum   : (p0+p1+p2+p4+p6+p10+0xC0) & 0xFF
+# p[0]  fan speed        : 0=Spd1  1=Spd2  2=Spd3  3=Spd4
+# p[1]  timer hrs        : 0=OFF   2=2h    4=4h    8=8h
+# p[2]  flags            : bit0=Power bit1=UVC bit2=Timer bit5=Auto bit6+7=Night
+# p[4]  PM2.5 raw        : ÷10 = µg/m³  (e.g. 50 → 5.0 µg/m³)
+# p[6]  ADC reading      : ~209 (differential pressure / flow sensor)
+# p[7:9]  filter total   : big-endian uint16, filter lifetime in hours (4320h)
+# p[9:11] filter used    : big-endian uint16, hours the filter has been used
+# p[11] checksum         : (p0+p1+p2+p4+p6+p10+0xC0) & 0xFF
 #
-# ── EF04 Snapshot (on connect) ───────────────────────────────────────────────
-# pair[1] = Temperature ÷10 °C    (confirmed)
-# pair[4] = Humidity % RH         (unconfirmed)
+# ── EF03 Characteristic (purpose unknown) ───────────────────────────────────
+# Subscribed for reverse-engineering; raw hex logged via AC500EF03RawSensor
+#
+# ── EF04 History Buffer (on connect) ─────────────────────────────────────────
+# EF04 is a circular history buffer of (PM2.5_raw, temp×10) measurement pairs.
+# Structure per 20-byte frame: 5 × (PM2.5_raw u16, temp×10 u16) big-endian
+# Framing: preceded by 0x01 (init), terminated by 0xFF
+# even-indexed pairs (0,2,4,…) = PM2.5 raw (÷10 = µg/m³)
+# odd-indexed  pairs (1,3,5,…) = Temperature×10 (÷10 = °C)
+# Last valid odd pair = most recent temperature reading
+# NO humidity sensor on this device – pair[4] is PM2.5 history, not humidity
 
 FLAG_POWER = 0x01
 FLAG_UVC   = 0x02

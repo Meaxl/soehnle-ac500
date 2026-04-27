@@ -1,11 +1,3 @@
-# Whitelist files/folders with !, these will not be ignored.
-!*.py
-!*.json
-!*.
-!.gitignore
-!*.md
-!.github/workflows/*.
-
 # Certificate ignore
 /certificate
 /ssl
@@ -24,7 +16,6 @@ __pycache__
 # Directory (contents) ignores
 /logs
 .git
-.github
 .cloud
 .claude
 .google.token

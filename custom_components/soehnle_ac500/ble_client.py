@@ -14,7 +14,8 @@ from bleak_retry_connector import (
 )
 
 from .const import (
-    UUID_WRITE, UUID_EF02, UUID_EF04,
+    UUID_WRITE, UUID_EF02, UUID_EF03, UUID_EF04,
+    UUID_FFD2, UUID_FFD3, UUID_FFD4, UUID_FFD5, UUID_FFF1,
     FLAG_POWER, FLAG_UVC, FLAG_TIMER, FLAG_AUTO, FLAG_NIGHT,
     SPEED_MAP, COMMANDS,
 )
@@ -33,13 +34,29 @@ class AC500State:
     speed:       int   = 0        # 0-3
     timer_val:   int   = 0        # 0/2/4/8 hours
     pm25_raw:    int   = 0        # ÷10 = µg/m³
-    # ── Environmental sensors (EF04 snapshot) ───────────────────────────
-    temperature: float | None = None   # °C
-    humidity:    int   | None = None   # % RH
-    # ── EF04 unknown pairs (diagnostic / reverse-engineering) ───────────
-    ef04_pair0:  int   | None = None   # purpose unknown
-    ef04_pair2:  int   | None = None   # purpose unknown
-    ef04_pair3:  int   | None = None   # purpose unknown
+    # ── Environmental sensors ────────────────────────────────────────────
+    temperature: float | None = None   # °C – last valid temp from EF04 history
+    # ── EF04 history buffer (diagnostic / reverse-engineering) ───────────
+    # Structure: alternating (PM2.5_raw, temp×10) pairs per frame
+    # even-indexed pairs = PM2.5 raw history, odd-indexed = temperature×10 history
+    ef04_pair0:   int   | None = None   # PM2.5 raw history
+    ef04_pair2:   int   | None = None   # PM2.5 raw history
+    ef04_pair3:   int   | None = None   # temperature×10 history
+    ef04_pair5:   int   | None = None   # temperature×10 history
+    ef04_pair6:   int   | None = None   # PM2.5 raw history
+    ef04_pair7:   int   | None = None   # temperature×10 history
+    ef04_raw_hex: str   | None = None   # full raw payload for analysis
+    # ── EF03 unknown characteristic ─────────────────────────────────────
+    ef03_raw_hex: str   | None = None   # raw EF03 payload (purpose unknown)
+    # ── d0ff service read-only chars (filter data candidates) ───────────
+    ffd2_raw_hex: str   | None = None
+    ffd3_raw_hex: str   | None = None
+    ffd4_raw_hex: str   | None = None
+    ffd5_raw_hex: str   | None = None
+    fff1_raw_hex: str   | None = None
+    # ── Filter lifetime data (from EF02 p[7:9] / p[9:11]) ──────────────
+    filter_total_hours: int = 0   # big-endian uint16 at p[7:9], e.g. 4320
+    filter_used_hours:  int = 0   # big-endian uint16 at p[9:11], e.g. 758
     # ── Connection state ────────────────────────────────────────────────
     connected:   bool  = False    # True = BLE link active right now
     ever_seen:   bool  = False    # True = received at least one valid EF02
@@ -47,6 +64,18 @@ class AC500State:
     @property
     def pm25(self) -> float:
         return round(self.pm25_raw / 10, 1)
+
+    @property
+    def filter_pct_used(self) -> float | None:
+        if self.filter_total_hours == 0:
+            return None
+        return round(self.filter_used_hours / self.filter_total_hours * 100, 1)
+
+    @property
+    def filter_remaining_hours(self) -> int | None:
+        if self.filter_total_hours == 0:
+            return None
+        return max(0, self.filter_total_hours - self.filter_used_hours)
 
     @property
     def timer_hours(self) -> int:
@@ -63,7 +92,8 @@ class AC500State:
             return False
 
         old = (self.power, self.uvc, self.night, self.auto,
-               self.timer_on, self.timer_val, self.speed, self.pm25_raw)
+               self.timer_on, self.timer_val, self.speed, self.pm25_raw,
+               self.filter_total_hours, self.filter_used_hours)
 
         flags          = p[2]
         self.power     = bool(flags & FLAG_POWER)
@@ -74,35 +104,46 @@ class AC500State:
         self.speed     = p[0]
         self.timer_val = p[1]
         self.pm25_raw  = p[4]
+        # p[7:9] = filter total lifetime (hours), p[9:11] = filter hours used
+        self.filter_total_hours = int.from_bytes(p[7:9], "big")
+        self.filter_used_hours  = int.from_bytes(p[9:11], "big")
         self.ever_seen = True
 
         new = (self.power, self.uvc, self.night, self.auto,
-               self.timer_on, self.timer_val, self.speed, self.pm25_raw)
+               self.timer_on, self.timer_val, self.speed, self.pm25_raw,
+               self.filter_total_hours, self.filter_used_hours)
         return old != new
 
     def parse_ef04(self, data: bytes) -> bool:
         if len(data) < 4 or len(data) % 2 != 0:
             return False
         pairs = [int.from_bytes(data[i:i+2], "big") for i in range(0, len(data), 2)]
-        old_temp, old_hum = self.temperature, self.humidity
-        old_p0, old_p2, old_p3 = self.ef04_pair0, self.ef04_pair2, self.ef04_pair3
+        old = (self.temperature,
+               self.ef04_pair0, self.ef04_pair2, self.ef04_pair3,
+               self.ef04_pair5, self.ef04_pair6, self.ef04_pair7,
+               self.ef04_raw_hex)
 
-        if len(pairs) >= 2 and pairs[1] != 0xFFFF:
-            self.temperature = round(pairs[1] / 10, 1)
-        if len(pairs) >= 5 and pairs[4] != 0xFFFF and pairs[4] <= 100:
-            self.humidity = pairs[4]
+        # EF04 is a history buffer of alternating (PM2.5_raw, temp×10) pairs.
+        # Odd-indexed pairs = temperature×10. Iterate all to get the most recent
+        # (last valid) temperature from this frame.
+        for i in range(1, len(pairs), 2):
+            if pairs[i] != 0xFFFF:
+                self.temperature = round(pairs[i] / 10, 1)
 
-        # Capture unknown pairs for diagnostic purposes
-        if len(pairs) >= 1 and pairs[0] != 0xFFFF:
-            self.ef04_pair0 = pairs[0]
-        if len(pairs) >= 3 and pairs[2] != 0xFFFF:
-            self.ef04_pair2 = pairs[2]
-        if len(pairs) >= 4 and pairs[3] != 0xFFFF:
-            self.ef04_pair3 = pairs[3]
+        # Capture selected pairs as diagnostic history values
+        _diag = {0: "ef04_pair0", 2: "ef04_pair2", 3: "ef04_pair3",
+                 5: "ef04_pair5", 6: "ef04_pair6", 7: "ef04_pair7"}
+        for idx, attr in _diag.items():
+            if len(pairs) > idx and pairs[idx] != 0xFFFF:
+                setattr(self, attr, pairs[idx])
 
-        return (self.temperature != old_temp or self.humidity != old_hum
-                or self.ef04_pair0 != old_p0 or self.ef04_pair2 != old_p2
-                or self.ef04_pair3 != old_p3)
+        self.ef04_raw_hex = data.hex()
+
+        new = (self.temperature,
+               self.ef04_pair0, self.ef04_pair2, self.ef04_pair3,
+               self.ef04_pair5, self.ef04_pair6, self.ef04_pair7,
+               self.ef04_raw_hex)
+        return old != new
 
 
 class AC500BleClient:
@@ -115,10 +156,10 @@ class AC500BleClient:
     """
 
     def __init__(self, address: str) -> None:
-        self._address    = address
+        self._address      = address
         self._client: BleakClientWithServiceCache | None = None
-        self._lock       = asyncio.Lock()
-        self.state       = AC500State()
+        self._lock         = asyncio.Lock()
+        self.state         = AC500State()
         self._callbacks: list[Callable] = []
 
     def register_callback(self, cb: Callable) -> None:
@@ -140,6 +181,15 @@ class AC500BleClient:
             )
             await self._client.start_notify(UUID_EF02, self._notify_ef02)
             await self._client.start_notify(UUID_EF04, self._notify_ef04)
+            try:
+                await self._client.start_notify(UUID_EF03, self._notify_ef03)
+                _LOGGER.debug("AC500 subscribed to EF03")
+            except BleakError as err:
+                _LOGGER.warning("AC500 EF03 not available: %s", err)
+
+            # Read proprietary d0ff service characteristics (static identifiers)
+            await self._read_d0ff_chars()
+
             self.state.connected = True
             _LOGGER.info("AC500 connected via bleak_retry_connector")
             self._notify_ha()
@@ -191,12 +241,46 @@ class AC500BleClient:
                 self._notify_ha()
                 return False
 
+    async def _read_d0ff_chars(self) -> None:
+        """Read all readable d0ff service characteristics after connecting."""
+        candidates = [
+            ("ffd2", UUID_FFD2),
+            ("ffd3", UUID_FFD3),
+            ("ffd4", UUID_FFD4),
+            ("ffd5", UUID_FFD5),
+            ("fff1", UUID_FFF1),
+        ]
+        changed = False
+        for name, uuid in candidates:
+            try:
+                data = bytes(await self._client.read_gatt_char(uuid))
+                hex_str = data.hex()
+                _LOGGER.debug("AC500 %s (%d bytes): %s", name.upper(), len(data), hex_str)
+                attr = f"{name}_raw_hex"
+                if getattr(self.state, attr) != hex_str:
+                    setattr(self.state, attr, hex_str)
+                    changed = True
+            except BleakError as err:
+                _LOGGER.warning("AC500 read %s failed: %s", name.upper(), err)
+        if changed:
+            self._notify_ha()
+
     def _notify_ef02(self, _sender, raw: bytearray) -> None:
-        if self.state.parse_ef02(bytes(raw)):
+        data = bytes(raw)
+        _LOGGER.debug("EF02 raw (%d bytes): %s", len(data), data.hex())
+        if self.state.parse_ef02(data):
+            self._notify_ha()
+
+    def _notify_ef03(self, _sender, raw: bytearray) -> None:
+        hex_str = bytes(raw).hex()
+        _LOGGER.info("EF03 notification: %s", hex_str)
+        if self.state.ef03_raw_hex != hex_str:
+            self.state.ef03_raw_hex = hex_str
             self._notify_ha()
 
     def _notify_ef04(self, _sender, raw: bytearray) -> None:
         data = bytes(raw)
+        _LOGGER.debug("EF04 raw (%d bytes): %s", len(data), data.hex())
         if len(data) > 2 and self.state.parse_ef04(data):
             self._notify_ha()
 
