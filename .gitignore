@@ -24,7 +24,7 @@ __pycache__
 # Directory (contents) ignores
 /logs
 .git
-.github
+#.github
 .cloud
 .claude
 .google.token
