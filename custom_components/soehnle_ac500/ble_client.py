@@ -87,9 +87,11 @@ class AC500State:
         p = data[4:-1]
         expected = (p[0]+p[1]+p[2]+p[4]+p[6]+p[10]+0xC0) & 0xFF
         if expected != p[11]:
-            _LOGGER.warning("EF02 checksum mismatch: expected 0x%02x got 0x%02x",
-                            expected, p[11])
-            return False
+            _LOGGER.warning(
+                "EF02 checksum mismatch: expected 0x%02x got 0x%02x – raw: %s "
+                "(parsing anyway to keep state in sync)",
+                expected, p[11], data.hex(),
+            )
 
         old = (self.power, self.uvc, self.night, self.auto,
                self.timer_on, self.timer_val, self.speed, self.pm25_raw,
