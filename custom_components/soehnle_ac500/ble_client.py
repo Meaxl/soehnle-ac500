@@ -85,11 +85,14 @@ class AC500State:
         if len(data) != 17 or data[0] != 0xAA or data[-1] != 0xEE:
             return False
         p = data[4:-1]
-        expected = (p[0]+p[1]+p[2]+p[4]+p[6]+p[10]+0xC0) & 0xFF
+        # Correct formula includes p[9] (filter_used high byte) + 0xBE.
+        # Earlier frames had p[9]=0x02 constantly, masking p[9] inside the
+        # apparent constant 0xC0 (0x02+0xBE=0xC0). After the timer ran the
+        # filter hours rolled over (0x02FF→0x0300), exposing p[9] in the sum.
+        expected = (p[0]+p[1]+p[2]+p[4]+p[6]+p[9]+p[10]+0xBE) & 0xFF
         if expected != p[11]:
             _LOGGER.warning(
-                "EF02 checksum mismatch: expected 0x%02x got 0x%02x – raw: %s "
-                "(parsing anyway to keep state in sync)",
+                "EF02 checksum mismatch: expected 0x%02x got 0x%02x – raw: %s",
                 expected, p[11], data.hex(),
             )
 
