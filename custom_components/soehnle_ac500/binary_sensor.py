@@ -1,4 +1,4 @@
-"""Binary sensor – BLE connection status."""
+"""Binärsensor – BLE-Verbindungsstatus."""
 from __future__ import annotations
 
 from homeassistant.components.binary_sensor import (
@@ -22,7 +22,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry,
 
 
 class AC500ConnectivitySensor(AC500EntityBase, BinarySensorEntity):
-    """Shows live BLE connection status. Always available (shows 'off' when disconnected)."""
+    """Zeigt den aktuellen BLE-Verbindungsstatus. Immer verfügbar (zeigt 'off' bei Trennung)."""
 
     _attr_device_class = BinarySensorDeviceClass.CONNECTIVITY
     _attr_entity_registry_enabled_default = False
@@ -35,7 +35,7 @@ class AC500ConnectivitySensor(AC500EntityBase, BinarySensorEntity):
 
     @property
     def available(self) -> bool:
-        # Always available so the disconnected state is visible in HA
+        # Immer verfügbar, damit der Getrennt-Zustand in HA sichtbar bleibt
         return True
 
     @property
