@@ -28,7 +28,7 @@ UUID_FFF1  = "0000FFF1-0000-1000-8000-00805F9B34FB"
 # p[6]  ADC reading      : ~209 (differential pressure / flow sensor)
 # p[7:9]  filter total   : big-endian uint16, filter lifetime in hours (4320h)
 # p[9:11] filter used    : big-endian uint16, hours the filter has been used
-# p[11] checksum         : (p0+p1+p2+p4+p6+p10+0xC0) & 0xFF
+# p[11] checksum         : (p0+p1+p2+p4+p6+p9+p10+0xBE) & 0xFF
 #
 # ── EF03 Characteristic (purpose unknown) ───────────────────────────────────
 # Subscribed for reverse-engineering; raw hex logged via AC500EF03RawSensor
