@@ -1,4 +1,4 @@
-"""DataUpdateCoordinator – reconnect loop for AC500."""
+"""DataUpdateCoordinator – Verbindungsschleife und Wiederverbindung für den AC500."""
 from __future__ import annotations
 
 import asyncio
@@ -11,15 +11,15 @@ from .ble_client import AC500BleClient, AC500State
 
 _LOGGER = logging.getLogger(__name__)
 
-RECONNECT_INTERVAL = 5    # seconds between reconnect attempts
-KEEPALIVE_TIMEOUT  = 15   # seconds without notify before forced reconnect
+RECONNECT_INTERVAL = 5    # Sekunden zwischen Wiederverbindungsversuchen
+KEEPALIVE_TIMEOUT  = 15   # Sekunden ohne Notify bevor Neuverbindung erzwungen wird
 
 
 class AC500Coordinator(DataUpdateCoordinator):
     """
-    Manages the BLE lifecycle.
-    - Reconnects automatically on drop
-    - Notifies all entities on every state change
+    Verwaltet den BLE-Lebenszyklus.
+    - Verbindet bei Verbindungsabbruch automatisch neu
+    - Benachrichtigt alle Entitäten bei jeder Zustandsänderung
     """
 
     def __init__(self, hass: HomeAssistant, client: AC500BleClient,

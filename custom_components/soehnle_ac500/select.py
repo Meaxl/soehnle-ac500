@@ -1,7 +1,8 @@
-"""Select entity – Timer (off / 2h / 4h / 8h)."""
+"""Auswahl-Entität – Timer (aus / 2h / 4h / 8h)."""
 from __future__ import annotations
 
 import logging
+
 from homeassistant.components.select import SelectEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_NAME

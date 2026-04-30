@@ -1,14 +1,14 @@
-"""Soehnle Airfresh Clean Connect 500 – Home Assistant Integration."""
+"""Soehnle Airfresh Clean Connect 500 – Home Assistant Integration (Setup & Koordination)."""
 from __future__ import annotations
 
 import logging
 
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import Platform, CONF_ADDRESS, CONF_NAME
+from homeassistant.const import CONF_ADDRESS, CONF_NAME, Platform
 from homeassistant.core import HomeAssistant
 
-from .const import DOMAIN
 from .ble_client import AC500BleClient
+from .const import DOMAIN
 from .coordinator import AC500Coordinator
 
 _LOGGER = logging.getLogger(__name__)

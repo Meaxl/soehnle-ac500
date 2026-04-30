@@ -1,4 +1,4 @@
-"""Switch entities – UV-C, Night Mode."""
+"""Schalter-Entitäten – UV-C, Nachtmodus."""
 from __future__ import annotations
 
 import logging
