@@ -25,10 +25,11 @@ class AC500Coordinator(DataUpdateCoordinator):
     def __init__(self, hass: HomeAssistant, client: AC500BleClient,
                  name: str) -> None:
         super().__init__(hass, _LOGGER, name=name)
-        self._client          = client
-        self._last_notify_ts  = asyncio.get_event_loop().time()
-        self._running         = False
+        self._client                = client
+        self._last_notify_ts        = asyncio.get_event_loop().time()
+        self._running               = False
         self._task: asyncio.Task | None = None
+        self._paused_for_night_mode = False
 
     @property
     def state(self) -> AC500State:
@@ -55,9 +56,23 @@ class AC500Coordinator(DataUpdateCoordinator):
         self._last_notify_ts = asyncio.get_event_loop().time()
         self.async_set_updated_data(self._client.state)
 
+    async def pause_for_night_mode(self) -> None:
+        """BLE-Reconnect für Nachtmodus deaktivieren und Verbindung trennen."""
+        self._paused_for_night_mode = True
+        await self._client.disconnect()
+        _LOGGER.debug("AC500 BLE-Verbindung für Nachtmodus getrennt")
+
+    def resume_from_night_mode(self) -> None:
+        """BLE-Reconnect nach Nachtmodus-Ende wieder erlauben."""
+        self._paused_for_night_mode = False
+        _LOGGER.debug("AC500 Nachtmodus beendet – Reconnect wieder aktiv")
+
     async def _connection_loop(self) -> None:
         while self._running:
             if not self._client.is_connected:
+                if self._paused_for_night_mode:
+                    await asyncio.sleep(2)
+                    continue
                 _LOGGER.info("AC500 attempting connection...")
                 connected = await self._client.connect()
                 if not connected:

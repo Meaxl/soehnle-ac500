@@ -1,6 +1,7 @@
 """Schalter-Entitäten – UV-C, Nachtmodus."""
 from __future__ import annotations
 
+import asyncio
 import logging
 from typing import Any
 
@@ -24,8 +25,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry,
     async_add_entities([
         AC500Switch(coordinator, entry, device_name,
                     "UV-C",       "uvc",   "uvc_on",   "uvc_off"),
-        AC500Switch(coordinator, entry, device_name,
-                    "Night Mode", "night", "night_on", "night_off"),
+        AC500NightModeSwitch(coordinator, entry, device_name),
     ])
 
 
@@ -48,3 +48,34 @@ class AC500Switch(AC500EntityBase, SwitchEntity):
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         await self._coordinator.client.send_command(self._cmd_off)
+
+
+class AC500NightModeSwitch(AC500EntityBase, SwitchEntity):
+    """
+    Nachtmodus-Schalter mit BLE-Disconnect-Logik:
+    Beim Einschalten wird die BLE-Verbindung nach dem Befehl getrennt,
+    damit das Gerät nicht sofort wieder aus dem Nachtmodus geweckt wird.
+    Beim Ausschalten wird der Reconnect wieder freigegeben – der Verbindungsaufbau
+    selbst weckt das Gerät aus dem Nachtmodus (Geräteverhalten).
+    """
+
+    def __init__(self, coordinator: AC500Coordinator, entry: ConfigEntry,
+                 device_name: str) -> None:
+        super().__init__(coordinator, entry, "night")
+        self._attr_name = f"{device_name} Night Mode"
+
+    @property
+    def is_on(self) -> bool:
+        return bool(self._coordinator.state.night)
+
+    async def async_turn_on(self, **kwargs: Any) -> None:
+        success = await self._coordinator.client.send_command("night_on")
+        if success:
+            await asyncio.sleep(1.0)
+            await self._coordinator.pause_for_night_mode()
+        self.async_write_ha_state()
+
+    async def async_turn_off(self, **kwargs: Any) -> None:
+        # Reconnect freigeben – der Verbindungsaufbau weckt Gerät automatisch
+        self._coordinator.resume_from_night_mode()
+        self.async_write_ha_state()
