@@ -234,6 +234,10 @@ class AC500BleClient:
         self._notify_ha()
 
     @property
+    def address(self) -> str:
+        return self._address
+
+    @property
     def is_connected(self) -> bool:
         return bool(self._client and self._client.is_connected)
 
