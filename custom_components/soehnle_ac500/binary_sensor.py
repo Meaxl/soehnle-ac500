@@ -6,7 +6,6 @@ from homeassistant.components.binary_sensor import (
     BinarySensorEntity,
 )
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import CONF_NAME
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
@@ -30,8 +29,7 @@ class AC500ConnectivitySensor(AC500EntityBase, BinarySensorEntity):
     def __init__(self, coordinator: AC500Coordinator,
                  entry: ConfigEntry) -> None:
         super().__init__(coordinator, entry, "connectivity")
-        device_name     = entry.data.get(CONF_NAME, "Soehnle AC500")
-        self._attr_name = f"{device_name} Connection"
+        self._attr_name = "Connection"
 
     @property
     def available(self) -> bool:

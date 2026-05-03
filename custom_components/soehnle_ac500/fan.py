@@ -7,7 +7,6 @@ from typing import Any
 
 from homeassistant.components.fan import FanEntity, FanEntityFeature
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import CONF_NAME
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
@@ -37,7 +36,7 @@ class AC500Fan(AC500EntityBase, FanEntity):
     def __init__(self, coordinator: AC500Coordinator,
                  entry: ConfigEntry) -> None:
         super().__init__(coordinator, entry, "fan")
-        self._attr_name = entry.data.get(CONF_NAME, "Soehnle AC500")
+        self._attr_name = None
 
     @property
     def is_on(self) -> bool:
