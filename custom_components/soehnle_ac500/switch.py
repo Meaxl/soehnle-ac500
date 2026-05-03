@@ -7,7 +7,6 @@ from typing import Any
 
 from homeassistant.components.switch import SwitchEntity
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import CONF_NAME
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
@@ -21,23 +20,22 @@ _LOGGER = logging.getLogger(__name__)
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry,
                             async_add_entities: AddEntitiesCallback) -> None:
     coordinator: AC500Coordinator = hass.data[DOMAIN][entry.entry_id]
-    device_name = entry.data.get(CONF_NAME, "Soehnle AC500")
     async_add_entities([
-        AC500Switch(coordinator, entry, device_name,
+        AC500Switch(coordinator, entry,
                     "UV-C",       "uvc",   "uvc_on",   "uvc_off"),
-        AC500NightModeSwitch(coordinator, entry, device_name),
+        AC500NightModeSwitch(coordinator, entry),
     ])
 
 
 class AC500Switch(AC500EntityBase, SwitchEntity):
     def __init__(self, coordinator: AC500Coordinator, entry: ConfigEntry,
-                 device_name: str, feature: str, state_attr: str,
+                 feature: str, state_attr: str,
                  cmd_on: str, cmd_off: str) -> None:
         super().__init__(coordinator, entry, state_attr)
         self._state_attr = state_attr
         self._cmd_on     = cmd_on
         self._cmd_off    = cmd_off
-        self._attr_name  = f"{device_name} {feature}"
+        self._attr_name  = feature
 
     @property
     def is_on(self) -> bool:
@@ -59,10 +57,10 @@ class AC500NightModeSwitch(AC500EntityBase, SwitchEntity):
     selbst weckt das Gerät aus dem Nachtmodus (Geräteverhalten).
     """
 
-    def __init__(self, coordinator: AC500Coordinator, entry: ConfigEntry,
-                 device_name: str) -> None:
+    def __init__(self, coordinator: AC500Coordinator,
+                 entry: ConfigEntry) -> None:
         super().__init__(coordinator, entry, "night")
-        self._attr_name = f"{device_name} Night Mode"
+        self._attr_name = "Night Mode"
 
     @property
     def is_on(self) -> bool:

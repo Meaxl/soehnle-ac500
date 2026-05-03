@@ -5,7 +5,6 @@ import logging
 
 from homeassistant.components.select import SelectEntity
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import CONF_NAME
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
@@ -33,8 +32,7 @@ class AC500TimerSelect(AC500EntityBase, SelectEntity):
     def __init__(self, coordinator: AC500Coordinator,
                  entry: ConfigEntry) -> None:
         super().__init__(coordinator, entry, "timer")
-        device_name      = entry.data.get(CONF_NAME, "Soehnle AC500")
-        self._attr_name  = f"{device_name} Timer"
+        self._attr_name  = "Timer"
 
     @property
     def current_option(self) -> str:
