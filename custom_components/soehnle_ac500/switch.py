@@ -74,6 +74,12 @@ class AC500NightModeSwitch(AC500EntityBase, SwitchEntity):
         self.async_write_ha_state()
 
     async def async_turn_off(self, **kwargs: Any) -> None:
-        # Reconnect freigeben – der Verbindungsaufbau weckt Gerät automatisch
+        # Wenn bereits verbunden, Nachtmodus aktiv beenden.
+        # (z. B. nach physischer Aktivierung oder HA-Neustart)
+        if self._coordinator.client.is_connected:
+            await self._coordinator.client.send_command("night_off")
+
+        # Reconnect freigeben – der Verbindungsaufbau weckt Gerät automatisch,
+        # falls aktuell keine BLE-Verbindung besteht.
         self._coordinator.resume_from_night_mode()
         self.async_write_ha_state()
