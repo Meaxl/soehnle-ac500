@@ -66,6 +66,11 @@ class AC500Coordinator(DataUpdateCoordinator):
 
     def _on_state_change(self) -> None:
         self._last_notify_ts = asyncio.get_event_loop().time()
+        # Nach HA-Neustart: Gerät meldet Nachtmodus per EF02, aber _paused_for_night_mode
+        # ist False. Automatisch pausieren, damit der Reconnect-Loop das Gerät nicht weckt.
+        if self._client.state.night and not self._paused_for_night_mode and not self._checking_night_mode:
+            _LOGGER.debug("AC500 Nachtmodus per EF02 erkannt ohne Pause-Flag – automatisch pausieren")
+            self.hass.async_create_task(self.pause_for_night_mode())
         self.async_set_updated_data(self._client.state)
 
     def _register_bt_wakeup_listener(self) -> None:
@@ -92,20 +97,38 @@ class AC500Coordinator(DataUpdateCoordinator):
         now = asyncio.get_event_loop().time()
         if now - self._last_night_mode_check_ts < CHECK_NIGHT_MODE_INTERVAL:
             return
+        # Flag synchron setzen, bevor Task erstellt wird – verhindert Race bei
+        # mehreren Advertisement-Callbacks vor dem ersten async-Switch.
+        self._checking_night_mode = True
         self.hass.async_create_task(self._check_night_mode_ended())
 
     async def _check_night_mode_ended(self) -> None:
         """Kurzer Connect zur Prüfung ob der Nachtmodus physisch beendet wurde."""
-        if not self._paused_for_night_mode or self._checking_night_mode:
+        # _checking_night_mode wurde bereits synchron in _on_bt_advertisement gesetzt.
+        if not self._paused_for_night_mode:
+            self._checking_night_mode = False
             return
-        self._checking_night_mode      = True
         self._last_night_mode_check_ts = asyncio.get_event_loop().time()
         try:
             connected = await self._client.connect()
             if not connected:
                 return
-            # Auf EF02-Notification warten (state.night wird via _on_state_change gesetzt)
-            await asyncio.sleep(1.0)
+
+            # Callback erst nach connect() registrieren: connect() feuert bereits
+            # _notify_ha() für state.connected – der nächste Callback enthält EF02-Daten.
+            ef02_event = asyncio.Event()
+
+            def _on_notify() -> None:
+                ef02_event.set()
+
+            self._client.register_callback(_on_notify)
+            try:
+                await asyncio.wait_for(ef02_event.wait(), timeout=3.0)
+            except asyncio.TimeoutError:
+                _LOGGER.warning("EF02 nicht innerhalb 3s empfangen – Nachtmodus-Status unklar")
+            finally:
+                self._client.unregister_callback(_on_notify)
+
             if not self._client.state.night:
                 _LOGGER.debug("Nachtmodus physisch beendet – Coordinator resumed")
                 self.resume_from_night_mode()
