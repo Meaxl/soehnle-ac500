@@ -9,7 +9,6 @@ UUID_EF03  = "0000EF03-0000-1000-8000-00805F9B34FB"
 UUID_EF04  = "0000EF04-0000-1000-8000-00805F9B34FB"
 
 # ── Service d0ff – proprietary ───────────────────────────────────────────────
-UUID_FFD1  = "0000FFD1-0000-1000-8000-00805F9B34FB"  # write-without-response
 UUID_FFD2  = "0000FFD2-0000-1000-8000-00805F9B34FB"
 UUID_FFD3  = "0000FFD3-0000-1000-8000-00805F9B34FB"
 UUID_FFD4  = "0000FFD4-0000-1000-8000-00805F9B34FB"
@@ -49,8 +48,12 @@ FLAG_AUTO  = 0x20
 FLAG_NIGHT = 0x40
 
 SPEED_MAP     = {0: "speed_1", 1: "speed_2", 2: "speed_3", 3: "speed_4"}
-SPEED_MAP_INV = {v: k for k, v in SPEED_MAP.items()}
 PRESET_MODES  = ["speed_1", "speed_2", "speed_3", "speed_4", "auto"]
+
+
+def normalize_address(address: str) -> str:
+    """MAC-Adresse für Matching konsistent normalisieren."""
+    return address.strip().upper()
 
 COMMANDS = {
     "power_on":   "aa0301000105ee",

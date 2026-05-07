@@ -5,7 +5,7 @@
   "documentation": "https://github.com/Meaxl/AC500_bl-reverse-engineering",
   "requirements": ["bleak>=0.21.1", "bleak-retry-connector>=3.0.0"],
   "dependencies": ["bluetooth"],
-  "codeowners": [],
+  "codeowners": ["@Meaxl"],
   "iot_class": "local_push",
   "config_flow": true
 }

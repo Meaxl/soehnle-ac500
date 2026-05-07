@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import time
 from collections.abc import Callable
 
 from homeassistant.components.bluetooth import (
@@ -35,7 +36,7 @@ class AC500Coordinator(DataUpdateCoordinator):
                  name: str) -> None:
         super().__init__(hass, _LOGGER, name=name)
         self._client                      = client
-        self._last_notify_ts              = asyncio.get_event_loop().time()
+        self._last_notify_ts              = time.monotonic()
         self._running                     = False
         self._task: asyncio.Task | None   = None
         self._paused_for_night_mode       = False
@@ -66,7 +67,7 @@ class AC500Coordinator(DataUpdateCoordinator):
         await self._client.disconnect()
 
     def _on_state_change(self) -> None:
-        self._last_notify_ts = asyncio.get_event_loop().time()
+        self._last_notify_ts = time.monotonic()
         # Nach HA-Neustart: Gerät meldet Nachtmodus per EF02, aber _paused_for_night_mode
         # ist False. Automatisch pausieren, damit der Reconnect-Loop das Gerät nicht weckt.
         if self._client.state.night and not self._paused_for_night_mode and not self._checking_night_mode:
@@ -95,7 +96,7 @@ class AC500Coordinator(DataUpdateCoordinator):
         """Wird aufgerufen, wenn das Gerät während der Nachtmodus-Pause advertised."""
         if not self._paused_for_night_mode or self._checking_night_mode:
             return
-        now = asyncio.get_event_loop().time()
+        now = time.monotonic()
         if now - self._last_night_mode_check_ts < CHECK_NIGHT_MODE_INTERVAL:
             return
         # Flag synchron setzen, bevor Task erstellt wird – verhindert Race bei
@@ -109,7 +110,7 @@ class AC500Coordinator(DataUpdateCoordinator):
         if not self._paused_for_night_mode:
             self._checking_night_mode = False
             return
-        self._last_night_mode_check_ts = asyncio.get_event_loop().time()
+        self._last_night_mode_check_ts = time.monotonic()
         try:
             connected = await self._client.connect()
             if not connected:
@@ -144,7 +145,7 @@ class AC500Coordinator(DataUpdateCoordinator):
         self._paused_for_night_mode = True
         await self._client.disconnect()
         self._register_bt_wakeup_listener()
-        self._last_night_mode_check_ts = asyncio.get_event_loop().time()
+        self._last_night_mode_check_ts = time.monotonic()
         _LOGGER.debug("AC500 BLE-Verbindung für Nachtmodus getrennt")
 
     def resume_from_night_mode(self) -> None:
@@ -158,7 +159,7 @@ class AC500Coordinator(DataUpdateCoordinator):
             if not self._client.is_connected:
                 if self._paused_for_night_mode:
                     if not self._checking_night_mode:
-                        now = asyncio.get_event_loop().time()
+                        now = time.monotonic()
                         if now - self._last_night_mode_check_ts >= NIGHT_MODE_FALLBACK_INTERVAL:
                             _LOGGER.debug(
                                 "Nachtmodus-Fallback: keine Advertisements seit %ds – probe connect",
@@ -173,12 +174,12 @@ class AC500Coordinator(DataUpdateCoordinator):
                 if not connected:
                     await asyncio.sleep(RECONNECT_INTERVAL)
                     continue
-                self._last_notify_ts = asyncio.get_event_loop().time()
+                self._last_notify_ts = time.monotonic()
 
             await asyncio.sleep(2)
 
             # Keepalive watchdog
-            elapsed = asyncio.get_event_loop().time() - self._last_notify_ts
+            elapsed = time.monotonic() - self._last_notify_ts
             if elapsed > KEEPALIVE_TIMEOUT:
                 _LOGGER.warning(
                     "No notify for %ds – forcing reconnect", KEEPALIVE_TIMEOUT
