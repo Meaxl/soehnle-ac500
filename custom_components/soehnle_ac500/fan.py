@@ -1,7 +1,6 @@
 """Lüfter-Entität – Geschwindigkeit, Voreinstellungen, Ein/Aus."""
 from __future__ import annotations
 
-import logging
 import math
 from typing import Any
 
@@ -13,8 +12,6 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from .const import DOMAIN, PRESET_MODES, SPEED_MAP
 from .coordinator import AC500Coordinator
 from .entity_base import AC500EntityBase
-
-_LOGGER = logging.getLogger(__name__)
 
 SPEED_TO_PCT = {0: 25, 1: 50, 2: 75, 3: 100}
 

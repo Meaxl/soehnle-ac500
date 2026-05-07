@@ -1,17 +1,13 @@
 """Soehnle Airfresh Clean Connect 500 – Home Assistant Integration (Setup & Koordination)."""
 from __future__ import annotations
 
-import logging
-
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_ADDRESS, CONF_NAME, Platform
 from homeassistant.core import HomeAssistant
 
 from .ble_client import AC500BleClient
-from .const import DOMAIN
+from .const import DOMAIN, normalize_address
 from .coordinator import AC500Coordinator
-
-_LOGGER = logging.getLogger(__name__)
 
 PLATFORMS = [
     Platform.FAN,
@@ -21,11 +17,9 @@ PLATFORMS = [
     Platform.BINARY_SENSOR,
 ]
 
-def _normalize_address(address: str) -> str:
-    return address.strip().upper()
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-    normalized_address = _normalize_address(entry.data[CONF_ADDRESS])
+    normalized_address = normalize_address(entry.data[CONF_ADDRESS])
     client      = AC500BleClient(normalized_address)
     coordinator = AC500Coordinator(
         hass, client, entry.data.get(CONF_NAME, "AC500")

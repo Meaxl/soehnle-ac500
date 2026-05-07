@@ -1,8 +1,6 @@
 """Auswahl-Entität – Timer (aus / 2h / 4h / 8h)."""
 from __future__ import annotations
 
-import logging
-
 from homeassistant.components.select import SelectEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
@@ -11,8 +9,6 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from .const import DOMAIN
 from .coordinator import AC500Coordinator
 from .entity_base import AC500EntityBase
-
-_LOGGER = logging.getLogger(__name__)
 
 TIMER_OPTIONS  = ["off", "2h", "4h", "8h"]
 TIMER_TO_CMD   = {"off": "timer_off", "2h": "timer_2h", "4h": "timer_4h", "8h": "timer_8h"}

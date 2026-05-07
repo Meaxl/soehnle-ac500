@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import asyncio
-import logging
 from typing import Any
 
 from homeassistant.components.switch import SwitchEntity
@@ -13,8 +12,6 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from .const import DOMAIN
 from .coordinator import AC500Coordinator
 from .entity_base import AC500EntityBase
-
-_LOGGER = logging.getLogger(__name__)
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry,
