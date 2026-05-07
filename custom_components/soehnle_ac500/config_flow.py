@@ -33,8 +33,7 @@ class SoehnleAC500ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         return self.async_show_form(
             step_id="user",
             data_schema=vol.Schema({
-                vol.Required(CONF_ADDRESS,
-                             default="00:00:00:00:00:00"): str,
+                vol.Required(CONF_ADDRESS): str,
                 vol.Optional(CONF_NAME,
                              default="Soehnle Airfresh AC500"): str,
             }),

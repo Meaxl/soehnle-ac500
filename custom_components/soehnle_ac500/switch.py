@@ -66,6 +66,7 @@ class AC500NightModeSwitch(AC500EntityBase, SwitchEntity):
     async def async_turn_on(self, **kwargs: Any) -> None:
         success = await self._coordinator.client.send_command("night_on")
         if success:
+            # Wartezeit: Gerät braucht ~1 s um Befehl zu verarbeiten, bevor BLE-Loop pausiert
             await asyncio.sleep(1.0)
             await self._coordinator.pause_for_night_mode()
         self.async_write_ha_state()
