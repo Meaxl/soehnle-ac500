@@ -20,7 +20,8 @@ _LOGGER = logging.getLogger(__name__)
 
 RECONNECT_INTERVAL        = 5    # Sekunden zwischen Wiederverbindungsversuchen
 KEEPALIVE_TIMEOUT         = 15   # Sekunden ohne Notify bevor Neuverbindung erzwungen wird
-CHECK_NIGHT_MODE_INTERVAL = 300  # Minimalabstand zwischen Nachtmodus-Reconnect-Checks
+CHECK_NIGHT_MODE_INTERVAL    = 300  # Minimalabstand zwischen Nachtmodus-Reconnect-Checks (Advertisement-Pfad)
+NIGHT_MODE_FALLBACK_INTERVAL = 60   # Fallback-Poll-Interval wenn keine BLE-Advertisements eingehen
 
 
 class AC500Coordinator(DataUpdateCoordinator):
@@ -143,6 +144,7 @@ class AC500Coordinator(DataUpdateCoordinator):
         self._paused_for_night_mode = True
         await self._client.disconnect()
         self._register_bt_wakeup_listener()
+        self._last_night_mode_check_ts = asyncio.get_event_loop().time()
         _LOGGER.debug("AC500 BLE-Verbindung für Nachtmodus getrennt")
 
     def resume_from_night_mode(self) -> None:
@@ -155,6 +157,15 @@ class AC500Coordinator(DataUpdateCoordinator):
         while self._running:
             if not self._client.is_connected:
                 if self._paused_for_night_mode:
+                    if not self._checking_night_mode:
+                        now = asyncio.get_event_loop().time()
+                        if now - self._last_night_mode_check_ts >= NIGHT_MODE_FALLBACK_INTERVAL:
+                            _LOGGER.debug(
+                                "Nachtmodus-Fallback: keine Advertisements seit %ds – probe connect",
+                                NIGHT_MODE_FALLBACK_INTERVAL,
+                            )
+                            self._checking_night_mode = True
+                            self.hass.async_create_task(self._check_night_mode_ended())
                     await asyncio.sleep(2)
                     continue
                 _LOGGER.info("AC500 attempting connection...")
