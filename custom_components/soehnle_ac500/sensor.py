@@ -90,30 +90,30 @@ class AC500TempSensor(_SensorBase):
 # PM2.5-Grenzwerte gemäß WHO 2021 / EPA AQI
 def _pm25_to_quality(pm25: float) -> str:
     if pm25 <= 12.0:
-        return "Good"
+        return "good"
     if pm25 <= 35.4:
-        return "Moderate"
+        return "moderate"
     if pm25 <= 55.4:
-        return "Unhealthy_sensitive"
+        return "unhealthy_sensitive"
     if pm25 <= 150.4:
-        return "Unhealthy"
+        return "unhealthy"
     if pm25 <= 250.4:
-        return "Very_unhealthy"
-    return "Hazardous"
+        return "very_unhealthy"
+    return "hazardous"
 
 
 class AC500AirQualitySensor(AC500EntityBase, SensorEntity):
     """Kategorische Luftqualität abgeleitet aus dem PM2.5-Messwert."""
 
-    _attr_device_class  = SensorDeviceClass.ENUM
-    _attr_options       = ["Good", "Moderate", "Unhealthy_sensitive",
-                           "Unhealthy", "Very_unhealthy", "Hazardous"]
-    _attr_icon          = "mdi:leaf"
+    _attr_device_class    = SensorDeviceClass.ENUM
+    _attr_options         = ["good", "moderate", "unhealthy_sensitive",
+                             "unhealthy", "very_unhealthy", "hazardous"]
+    _attr_icon            = "mdi:leaf"
+    _attr_translation_key = "air_quality"
 
     def __init__(self, coordinator: AC500Coordinator,
                  entry: ConfigEntry) -> None:
         super().__init__(coordinator, entry, "air_quality")
-        self._attr_name = "Air Quality"
 
     @property
     def native_value(self) -> str | None:
@@ -237,8 +237,9 @@ class AC500EF04RawSensor(AC500EntityBase, SensorEntity):
 class AC500EF03RawSensor(AC500EntityBase, SensorEntity):
     """Vollständiger EF03-Rohpayload als Hex – Zweck der Charakteristik noch unbekannt."""
 
-    _attr_entity_category = EntityCategory.DIAGNOSTIC
-    _attr_icon            = "mdi:help-rhombus-outline"
+    _attr_entity_category               = EntityCategory.DIAGNOSTIC
+    _attr_entity_registry_enabled_default = False
+    _attr_icon                          = "mdi:help-rhombus-outline"
 
     def __init__(self, coordinator: AC500Coordinator,
                  entry: ConfigEntry) -> None:

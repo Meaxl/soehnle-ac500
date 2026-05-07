@@ -1,0 +1,30 @@
+{
+    "config": {
+        "step": {
+            "user": {
+                "title": "Soehnle Airfresh Clean Connect 500",
+                "data": {
+                    "address": "Bluetooth-MAC-Adresse des Geräts",
+                    "name": "Gerätename"
+                }
+            }
+        },
+        "abort": {
+            "already_configured": "Gerät bereits konfiguriert."
+        }
+    },
+    "entity": {
+        "sensor": {
+            "air_quality": {
+                "state": {
+                    "good": "Gut",
+                    "moderate": "Mäßig",
+                    "unhealthy_sensitive": "Ungesund für Empfindliche",
+                    "unhealthy": "Ungesund",
+                    "very_unhealthy": "Sehr ungesund",
+                    "hazardous": "Gefährlich"
+                }
+            }
+        }
+    }
+}

@@ -12,5 +12,19 @@
         "abort": {
             "already_configured": "Device already configured."
         }
+    },
+    "entity": {
+        "sensor": {
+            "air_quality": {
+                "state": {
+                    "good": "Good",
+                    "moderate": "Moderate",
+                    "unhealthy_sensitive": "Unhealthy for Sensitive Groups",
+                    "unhealthy": "Unhealthy",
+                    "very_unhealthy": "Very Unhealthy",
+                    "hazardous": "Hazardous"
+                }
+            }
+        }
     }
 }
