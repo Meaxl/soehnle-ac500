@@ -19,10 +19,11 @@ from .ble_client import AC500BleClient, AC500State
 
 _LOGGER = logging.getLogger(__name__)
 
-RECONNECT_INTERVAL        = 5    # Sekunden zwischen Wiederverbindungsversuchen
-KEEPALIVE_TIMEOUT         = 15   # Sekunden ohne Notify bevor Neuverbindung erzwungen wird
+RECONNECT_INTERVAL           = 5    # Sekunden zwischen Wiederverbindungsversuchen
+KEEPALIVE_TIMEOUT            = 15   # Sekunden ohne Notify bevor Neuverbindung erzwungen wird
 CHECK_NIGHT_MODE_INTERVAL    = 300  # Minimalabstand zwischen Nachtmodus-Reconnect-Checks (Advertisement-Pfad)
 NIGHT_MODE_FALLBACK_INTERVAL = 60   # Fallback-Poll-Interval wenn keine BLE-Advertisements eingehen
+STALE_THRESHOLD              = 600  # Sekunden ohne Notify = Sensor als nicht verfügbar markieren
 
 
 class AC500Coordinator(DataUpdateCoordinator):
@@ -51,6 +52,15 @@ class AC500Coordinator(DataUpdateCoordinator):
     @property
     def client(self) -> AC500BleClient:
         return self._client
+
+    @property
+    def is_stale(self) -> bool:
+        if not self._client.state.ever_seen:
+            return True
+        if self._paused_for_night_mode:
+            # Nachtmodus-Pause zählt nicht als stale – letzter Wert bleibt gültig
+            return False
+        return time.monotonic() - self._last_notify_ts > STALE_THRESHOLD
 
     async def async_start(self) -> None:
         self._running = True

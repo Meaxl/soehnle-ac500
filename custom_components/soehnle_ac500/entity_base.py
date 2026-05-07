@@ -4,28 +4,28 @@ Zuständig für:
   - Gerätegruppierung (DeviceInfo wird von allen Entitäten geteilt)
   - Verfügbarkeitslogik: erst nach dem ersten EF02-Frame verfügbar;
     letzter bekannter Zustand bleibt bei BLE-Unterbrechungen erhalten
-  - Registrierung und Deregistrierung des Coordinator-Listeners
+  - Listener-Registrierung via CoordinatorEntity
 """
 from __future__ import annotations
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_ADDRESS, CONF_NAME
-from homeassistant.core import callback
 from homeassistant.helpers.device_registry import DeviceInfo
-from homeassistant.helpers.entity import Entity
+from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import DOMAIN
 from .coordinator import AC500Coordinator
 
 
-class AC500EntityBase(Entity):
+class AC500EntityBase(CoordinatorEntity[AC500Coordinator]):
     """Basisklasse für alle Soehnle AC500-Entitäten."""
 
     _attr_has_entity_name = True
-    _attr_should_poll     = False
 
     def __init__(self, coordinator: AC500Coordinator,
                  entry: ConfigEntry, suffix: str) -> None:
+        super().__init__(coordinator)
+        # Alias für alle Subklassen die self._coordinator verwenden
         self._coordinator = coordinator
         self._entry       = entry
 
@@ -45,21 +45,10 @@ class AC500EntityBase(Entity):
             connections   = {("bluetooth", address)},
         )
 
-    async def async_added_to_hass(self) -> None:
-        self._coordinator.async_add_listener(self._handle_update)
-
-    async def async_will_remove_from_hass(self) -> None:
-        self._coordinator.async_remove_listener(self._handle_update)
-
-    @callback
-    def _handle_update(self) -> None:
-        self.async_write_ha_state()
-
     @property
     def available(self) -> bool:
         """
-        True sobald der erste gültige EF02-Frame empfangen wurde.
-        Bleibt True während BLE-Unterbrechungen, damit der letzte Zustand sichtbar bleibt.
-        Nur False bevor überhaupt Daten angekommen sind.
+        True sobald der erste gültige EF02-Frame empfangen wurde und kein Stale-Timeout abgelaufen ist.
+        Während Nachtmodus-Pause bleibt der letzte Wert erhalten (kein Stale).
         """
-        return self._coordinator.state.ever_seen
+        return self._coordinator.state.ever_seen and not self._coordinator.is_stale
