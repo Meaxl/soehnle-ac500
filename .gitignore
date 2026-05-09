@@ -17,6 +17,7 @@ AGENTS.md
 # Directory (contents) ignores
 /markdown
 /logs
+/graphify-out
 .git
 .cloud
 .claude
@@ -24,3 +25,4 @@ AGENTS.md
 .vscode
 # File ignores
 tree.txt
+.graphifyignore
