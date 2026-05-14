@@ -7,6 +7,10 @@
                     "address": "Device Bluetooth MAC Address",
                     "name": "Device Name"
                 }
+            },
+            "bluetooth_confirm": {
+                "title": "Set up {name}?",
+                "description": "Do you want to set up {name} ({address})?"
             }
         },
         "abort": {

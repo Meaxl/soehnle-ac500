@@ -15,6 +15,9 @@ from .const import DOMAIN, normalize_address
 class SoehnleAC500ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     VERSION = 1
 
+    _discovered_address: str
+    _discovered_name: str
+
     async def async_step_user(self, user_input: dict[str, Any] | None = None) -> FlowResult:
         if user_input is not None:
             normalized_address = normalize_address(user_input[CONF_ADDRESS])
@@ -43,12 +46,35 @@ class SoehnleAC500ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     async def async_step_bluetooth(
         self, discovery_info: BluetoothServiceInfo
     ) -> FlowResult:
-        await self.async_set_unique_id(discovery_info.address.upper())
+        normalized_address = normalize_address(discovery_info.address)
+
+        await self.async_set_unique_id(normalized_address)
         self._abort_if_unique_id_configured()
+
+        self._discovered_address = normalized_address
+        self._discovered_name = discovery_info.name or "Soehnle AC500"
+        self.context["title_placeholders"] = {
+            "name": self._discovered_name,
+        }
+
+        return await self.async_step_bluetooth_confirm()
+
+    async def async_step_bluetooth_confirm(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        if user_input is None:
+            return self.async_show_form(
+                step_id="bluetooth_confirm",
+                description_placeholders={
+                    "name": self._discovered_name,
+                    "address": self._discovered_address,
+                },
+            )
+
         return self.async_create_entry(
-            title=discovery_info.name or "Soehnle AC500",
+            title=self._discovered_name,
             data={
-                CONF_ADDRESS: discovery_info.address,
-                CONF_NAME: discovery_info.name or "Soehnle AC500",
+                CONF_ADDRESS: self._discovered_address,
+                CONF_NAME: self._discovered_name,
             },
         )
