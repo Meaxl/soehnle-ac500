@@ -1,26 +1,80 @@
-"""Config flow."""
+"""Config Flow – UI-basierte Einrichtung der Integration."""
 from __future__ import annotations
+
+from typing import Any
+
 import voluptuous as vol
 from homeassistant import config_entries
+from homeassistant.components.bluetooth import BluetoothServiceInfo
 from homeassistant.const import CONF_ADDRESS, CONF_NAME
-from .const import DOMAIN
+from homeassistant.data_entry_flow import FlowResult
+
+from .const import DOMAIN, normalize_address
+
 
 class SoehnleAC500ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     VERSION = 1
-    async def async_step_user(self, user_input=None):
+
+    _discovered_address: str
+    _discovered_name: str
+
+    async def async_step_user(self, user_input: dict[str, Any] | None = None) -> FlowResult:
         if user_input is not None:
-            await self.async_set_unique_id(user_input[CONF_ADDRESS].upper())
+            normalized_address = normalize_address(user_input[CONF_ADDRESS])
+
+            await self.async_set_unique_id(normalized_address)
             self._abort_if_unique_id_configured()
+
+            entry_data = dict(user_input)
+            entry_data[CONF_ADDRESS] = normalized_address
+
             return self.async_create_entry(
                 title=user_input.get(CONF_NAME, "Soehnle AC500"),
-                data=user_input,
+                data=entry_data,
             )
+
         return self.async_show_form(
             step_id="user",
             data_schema=vol.Schema({
                 vol.Required(CONF_ADDRESS,
-                             default="48:87:2D:1F:DB:EB"): str,
+                             default="00:00:00:00:00:00"): str,
                 vol.Optional(CONF_NAME,
                              default="Soehnle Airfresh AC500"): str,
             }),
+        )
+
+    async def async_step_bluetooth(
+        self, discovery_info: BluetoothServiceInfo
+    ) -> FlowResult:
+        normalized_address = normalize_address(discovery_info.address)
+
+        await self.async_set_unique_id(normalized_address)
+        self._abort_if_unique_id_configured()
+
+        self._discovered_address = normalized_address
+        self._discovered_name = discovery_info.name or "Soehnle AC500"
+        self.context["title_placeholders"] = {
+            "name": self._discovered_name,
+        }
+
+        return await self.async_step_bluetooth_confirm()
+
+    async def async_step_bluetooth_confirm(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        if user_input is None:
+            return self.async_show_form(
+                step_id="bluetooth_confirm",
+                description_placeholders={
+                    "name": self._discovered_name,
+                    "address": self._discovered_address,
+                },
+            )
+
+        return self.async_create_entry(
+            title=self._discovered_name,
+            data={
+                CONF_ADDRESS: self._discovered_address,
+                CONF_NAME: self._discovered_name,
+            },
         )

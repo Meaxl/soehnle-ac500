@@ -1,10 +1,10 @@
-"""BLE client using bleak_retry_connector for reliable connections."""
+"""BLE-Client auf Basis von bleak_retry_connector für zuverlässige Verbindungen."""
 from __future__ import annotations
 
 import asyncio
 import logging
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Callable
 
 from bleak import BleakClient
 from bleak.exc import BleakError
@@ -14,10 +14,21 @@ from bleak_retry_connector import (
 )
 
 from .const import (
-    UUID_WRITE, UUID_EF02, UUID_EF03, UUID_EF04,
-    UUID_FFD2, UUID_FFD3, UUID_FFD4, UUID_FFD5, UUID_FFF1,
-    FLAG_POWER, FLAG_UVC, FLAG_TIMER, FLAG_AUTO, FLAG_NIGHT,
-    SPEED_MAP, COMMANDS,
+    COMMANDS,
+    FLAG_AUTO,
+    FLAG_NIGHT,
+    FLAG_POWER,
+    FLAG_TIMER,
+    FLAG_UVC,
+    UUID_EF02,
+    UUID_EF03,
+    UUID_EF04,
+    UUID_FFD2,
+    UUID_FFD3,
+    UUID_FFD4,
+    UUID_FFD5,
+    UUID_FFF1,
+    UUID_WRITE,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -153,11 +164,12 @@ class AC500State:
 
 class AC500BleClient:
     """
-    BLE client using bleak_retry_connector.establish_connection()
-    for reliable connection establishment (resolves HA debug warning).
+    BLE-Client mit bleak_retry_connector.establish_connection()
+    für zuverlässigen Verbindungsaufbau (behebt HA-Debug-Warnung).
 
-    State persistence: entities remain available with last-known values
-    during temporary BLE disconnects. Only unavailable before first connect.
+    Zustandspersistenz: Entitäten bleiben bei kurzen BLE-Unterbrechungen
+    mit dem letzten bekannten Wert verfügbar. Nur vor dem ersten Verbindungsaufbau
+    nicht verfügbar.
     """
 
     def __init__(self, address: str) -> None:
@@ -175,7 +187,7 @@ class AC500BleClient:
             self._callbacks.remove(cb)
 
     async def connect(self) -> bool:
-        """Connect using establish_connection() for reliable BLE setup."""
+        """Verbindungsaufbau via establish_connection() für zuverlässiges BLE-Setup."""
         try:
             self._client = await establish_connection(
                 client_class=BleakClientWithServiceCache,
@@ -216,10 +228,14 @@ class AC500BleClient:
         self._notify_ha()
 
     def _on_disconnected(self, client: BleakClient) -> None:
-        """Called by bleak when connection drops unexpectedly."""
+        """Wird von bleak aufgerufen, wenn die Verbindung unerwartet abbricht."""
         _LOGGER.debug("AC500 BLE disconnected (callback)")
         self.state.connected = False
         self._notify_ha()
+
+    @property
+    def address(self) -> str:
+        return self._address
 
     @property
     def is_connected(self) -> bool:

@@ -1,21 +1,17 @@
-"""Fan entity – speed, presets, on/off."""
+"""Lüfter-Entität – Geschwindigkeit, Voreinstellungen, Ein/Aus."""
 from __future__ import annotations
 
 import math
-import logging
 from typing import Any
 
 from homeassistant.components.fan import FanEntity, FanEntityFeature
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import CONF_NAME
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import DOMAIN, PRESET_MODES, SPEED_MAP
 from .coordinator import AC500Coordinator
 from .entity_base import AC500EntityBase
-
-_LOGGER = logging.getLogger(__name__)
 
 SPEED_TO_PCT = {0: 25, 1: 50, 2: 75, 3: 100}
 
@@ -37,7 +33,7 @@ class AC500Fan(AC500EntityBase, FanEntity):
     def __init__(self, coordinator: AC500Coordinator,
                  entry: ConfigEntry) -> None:
         super().__init__(coordinator, entry, "fan")
-        self._attr_name = entry.data.get(CONF_NAME, "Soehnle AC500")
+        self._attr_name = None
 
     @property
     def is_on(self) -> bool:

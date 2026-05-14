@@ -1,10 +1,10 @@
-"""Shared base class for all AC500 entities.
+"""Gemeinsame Basisklasse für alle AC500-Entitäten.
 
-Handles:
-  - Device grouping (DeviceInfo shared across all entities)
-  - Availability logic: unavailable only before first EF02 frame received;
-    last-known state is preserved during BLE reconnects
-  - Coordinator listener registration / deregistration
+Zuständig für:
+  - Gerätegruppierung (DeviceInfo wird von allen Entitäten geteilt)
+  - Verfügbarkeitslogik: erst nach dem ersten EF02-Frame verfügbar;
+    letzter bekannter Zustand bleibt bei BLE-Unterbrechungen erhalten
+  - Registrierung und Deregistrierung des Coordinator-Listeners
 """
 from __future__ import annotations
 
@@ -19,7 +19,7 @@ from .coordinator import AC500Coordinator
 
 
 class AC500EntityBase(Entity):
-    """Base for all Soehnle AC500 entities."""
+    """Basisklasse für alle Soehnle AC500-Entitäten."""
 
     _attr_has_entity_name = True
     _attr_should_poll     = False
@@ -34,14 +34,14 @@ class AC500EntityBase(Entity):
 
         self._attr_unique_id = f"{entry.entry_id}_{suffix}"
 
-        # ── Device grouping ──────────────────────────────────────────────
-        # All entities share this DeviceInfo → HA groups them under one device
+        # ── Gerätegruppierung ────────────────────────────────────────────
+        # Alle Entitäten teilen diese DeviceInfo → HA gruppiert sie unter einem Gerät
         self._attr_device_info = DeviceInfo(
             identifiers   = {(DOMAIN, entry.entry_id)},
             name          = device_name,
             manufacturer  = "Soehnle",
             model         = "Airfresh Clean Connect 500",
-            sw_version    = "0.0.4",
+            sw_version    = "Jan 25 2018",
             connections   = {("bluetooth", address)},
         )
 
@@ -58,8 +58,8 @@ class AC500EntityBase(Entity):
     @property
     def available(self) -> bool:
         """
-        True once the first valid EF02 frame has been received.
-        Stays True during BLE reconnects so last-known state remains visible.
-        Only False before any data has ever arrived.
+        True sobald der erste gültige EF02-Frame empfangen wurde.
+        Bleibt True während BLE-Unterbrechungen, damit der letzte Zustand sichtbar bleibt.
+        Nur False bevor überhaupt Daten angekommen sind.
         """
         return self._coordinator.state.ever_seen

@@ -13,10 +13,16 @@
 __pycache__
 *.DS_Store
 *.csv
+AGENTS.md
 # Directory (contents) ignores
+/markdown
 /logs
+/graphify-out
 .git
 .cloud
 .claude
 .google.token
 .vscode
+# File ignores
+tree.txt
+.graphifyignore

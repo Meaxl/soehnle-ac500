@@ -1,7 +1,5 @@
-"""Sensor entities – PM2.5, Temperature, Air Quality, Filter, EF04/EF02 diagnostics."""
+"""Sensor-Entitäten – PM2.5, Temperatur, Luftqualität, Filter, EF04/EF02-Diagnose."""
 from __future__ import annotations
-
-import logging
 
 from homeassistant.components.sensor import (
     SensorDeviceClass,
@@ -9,7 +7,7 @@ from homeassistant.components.sensor import (
     SensorStateClass,
 )
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import CONF_NAME, UnitOfTemperature, PERCENTAGE
+from homeassistant.const import PERCENTAGE, UnitOfTemperature
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
@@ -18,40 +16,38 @@ from .const import DOMAIN
 from .coordinator import AC500Coordinator
 from .entity_base import AC500EntityBase
 
-_LOGGER = logging.getLogger(__name__)
-
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry,
                             async_add_entities: AddEntitiesCallback) -> None:
     coordinator: AC500Coordinator = hass.data[DOMAIN][entry.entry_id]
-    device_name = entry.data.get(CONF_NAME, "Soehnle AC500")
     async_add_entities([
-        AC500PM25Sensor(coordinator, entry, device_name),
-        AC500TempSensor(coordinator, entry, device_name),
-        AC500AirQualitySensor(coordinator, entry, device_name),
-        AC500FilterUsedSensor(coordinator, entry, device_name),
-        AC500FilterRemainingSensor(coordinator, entry, device_name),
-        AC500FilterPctSensor(coordinator, entry, device_name),
-        AC500EF04DiagSensor(coordinator, entry, device_name, 0, "ef04_pair0"),
-        AC500EF04DiagSensor(coordinator, entry, device_name, 2, "ef04_pair2"),
-        AC500EF04DiagSensor(coordinator, entry, device_name, 3, "ef04_pair3"),
-        AC500EF04DiagSensor(coordinator, entry, device_name, 5, "ef04_pair5"),
-        AC500EF04DiagSensor(coordinator, entry, device_name, 6, "ef04_pair6"),
-        AC500EF04DiagSensor(coordinator, entry, device_name, 7, "ef04_pair7"),
-        AC500EF04RawSensor(coordinator, entry, device_name),
-        AC500EF03RawSensor(coordinator, entry, device_name),
-        AC500D0FFRawSensor(coordinator, entry, device_name, "ffd2"),
-        AC500D0FFRawSensor(coordinator, entry, device_name, "ffd3"),
-        AC500D0FFRawSensor(coordinator, entry, device_name, "ffd4"),
-        AC500D0FFRawSensor(coordinator, entry, device_name, "ffd5"),
-        AC500D0FFRawSensor(coordinator, entry, device_name, "fff1"),
+        AC500PM25Sensor(coordinator, entry),
+        AC500TempSensor(coordinator, entry),
+        AC500AirQualitySensor(coordinator, entry),
+        AC500FilterUsedSensor(coordinator, entry),
+        AC500FilterRemainingSensor(coordinator, entry),
+        AC500FilterPctSensor(coordinator, entry),
+        AC500EF04DiagSensor(coordinator, entry, 0, "ef04_pair0"),
+        AC500EF04DiagSensor(coordinator, entry, 2, "ef04_pair2"),
+        AC500EF04DiagSensor(coordinator, entry, 3, "ef04_pair3"),
+        AC500EF04DiagSensor(coordinator, entry, 5, "ef04_pair5"),
+        AC500EF04DiagSensor(coordinator, entry, 6, "ef04_pair6"),
+        AC500EF04DiagSensor(coordinator, entry, 7, "ef04_pair7"),
+        AC500EF04RawSensor(coordinator, entry),
+        AC500EF03RawSensor(coordinator, entry),
+        AC500D0FFRawSensor(coordinator, entry, "ffd2"),
+        AC500D0FFRawSensor(coordinator, entry, "ffd3"),
+        AC500D0FFRawSensor(coordinator, entry, "ffd4"),
+        AC500D0FFRawSensor(coordinator, entry, "ffd5"),
+        AC500D0FFRawSensor(coordinator, entry, "fff1"),
     ])
 
 
 class _SensorBase(AC500EntityBase, SensorEntity):
     _attr_state_class = SensorStateClass.MEASUREMENT
 
-    def __init__(self, coordinator, entry, device_name, suffix):
+    def __init__(self, coordinator: AC500Coordinator, entry: ConfigEntry,
+                 suffix: str) -> None:
         super().__init__(coordinator, entry, suffix)
 
 
@@ -61,9 +57,10 @@ class AC500PM25Sensor(_SensorBase):
     _attr_icon                       = "mdi:air-filter"
     _attr_suggested_display_precision = 1
 
-    def __init__(self, coordinator, entry, device_name):
-        super().__init__(coordinator, entry, device_name, "pm25")
-        self._attr_name = f"{device_name} PM2.5"
+    def __init__(self, coordinator: AC500Coordinator,
+                 entry: ConfigEntry) -> None:
+        super().__init__(coordinator, entry, "pm25")
+        self._attr_name = "PM2.5"
 
     @property
     def native_value(self) -> float | None:
@@ -75,9 +72,10 @@ class AC500TempSensor(_SensorBase):
     _attr_native_unit_of_measurement = UnitOfTemperature.CELSIUS
     _attr_suggested_display_precision = 1
 
-    def __init__(self, coordinator, entry, device_name):
-        super().__init__(coordinator, entry, device_name, "temperature")
-        self._attr_name = f"{device_name} Temperature"
+    def __init__(self, coordinator: AC500Coordinator,
+                 entry: ConfigEntry) -> None:
+        super().__init__(coordinator, entry, "temperature")
+        self._attr_name = "Temperature"
 
     @property
     def available(self) -> bool:
@@ -89,7 +87,7 @@ class AC500TempSensor(_SensorBase):
         return self._coordinator.state.temperature
 
 
-# PM2.5 thresholds based on WHO 2021 / EPA AQI breakpoints
+# PM2.5-Grenzwerte gemäß WHO 2021 / EPA AQI
 def _pm25_to_quality(pm25: float) -> str:
     if pm25 <= 12.0:
         return "Good"
@@ -105,16 +103,17 @@ def _pm25_to_quality(pm25: float) -> str:
 
 
 class AC500AirQualitySensor(AC500EntityBase, SensorEntity):
-    """Categorical air quality derived from PM2.5 reading."""
+    """Kategorische Luftqualität abgeleitet aus dem PM2.5-Messwert."""
 
     _attr_device_class  = SensorDeviceClass.ENUM
     _attr_options       = ["Good", "Moderate", "Unhealthy_sensitive",
                            "Unhealthy", "Very_unhealthy", "Hazardous"]
     _attr_icon          = "mdi:leaf"
 
-    def __init__(self, coordinator, entry, device_name):
+    def __init__(self, coordinator: AC500Coordinator,
+                 entry: ConfigEntry) -> None:
         super().__init__(coordinator, entry, "air_quality")
-        self._attr_name = f"{device_name} Air Quality"
+        self._attr_name = "Air Quality"
 
     @property
     def native_value(self) -> str | None:
@@ -124,15 +123,16 @@ class AC500AirQualitySensor(AC500EntityBase, SensorEntity):
 
 
 class AC500FilterUsedSensor(_SensorBase):
-    """Filter hours used – extracted from EF02 p[9:11]."""
+    """Genutzte Filterstunden – aus EF02 p[9:11]."""
 
     _attr_native_unit_of_measurement = "h"
     _attr_icon                       = "mdi:air-filter"
     _attr_suggested_display_precision = 0
 
-    def __init__(self, coordinator, entry, device_name):
-        super().__init__(coordinator, entry, device_name, "filter_used_hours")
-        self._attr_name = f"{device_name} Filter Used Hours"
+    def __init__(self, coordinator: AC500Coordinator,
+                 entry: ConfigEntry) -> None:
+        super().__init__(coordinator, entry, "filter_used_hours")
+        self._attr_name = "Filter Used Hours"
 
     @property
     def available(self) -> bool:
@@ -145,15 +145,16 @@ class AC500FilterUsedSensor(_SensorBase):
 
 
 class AC500FilterRemainingSensor(_SensorBase):
-    """Filter hours remaining – calculated from EF02 filter data."""
+    """Verbleibende Filterstunden – berechnet aus EF02-Filterdaten."""
 
     _attr_native_unit_of_measurement = "h"
     _attr_icon                       = "mdi:air-filter"
     _attr_suggested_display_precision = 0
 
-    def __init__(self, coordinator, entry, device_name):
-        super().__init__(coordinator, entry, device_name, "filter_remaining_hours")
-        self._attr_name = f"{device_name} Filter Remaining Hours"
+    def __init__(self, coordinator: AC500Coordinator,
+                 entry: ConfigEntry) -> None:
+        super().__init__(coordinator, entry, "filter_remaining_hours")
+        self._attr_name = "Filter Remaining Hours"
 
     @property
     def available(self) -> bool:
@@ -166,15 +167,16 @@ class AC500FilterRemainingSensor(_SensorBase):
 
 
 class AC500FilterPctSensor(_SensorBase):
-    """Filter usage percentage – matches app display."""
+    """Filternutzung in Prozent – entspricht der App-Anzeige."""
 
     _attr_native_unit_of_measurement = PERCENTAGE
     _attr_icon                       = "mdi:air-filter"
     _attr_suggested_display_precision = 1
 
-    def __init__(self, coordinator, entry, device_name):
-        super().__init__(coordinator, entry, device_name, "filter_pct_used")
-        self._attr_name = f"{device_name} Filter Usage"
+    def __init__(self, coordinator: AC500Coordinator,
+                 entry: ConfigEntry) -> None:
+        super().__init__(coordinator, entry, "filter_pct_used")
+        self._attr_name = "Filter Usage"
 
     @property
     def available(self) -> bool:
@@ -187,18 +189,18 @@ class AC500FilterPctSensor(_SensorBase):
 
 
 class AC500EF04DiagSensor(AC500EntityBase, SensorEntity):
-    """Raw EF04 pair value – diagnostic aid for reverse-engineering."""
+    """Rohwert eines EF04-Paares – Diagnosehilfe für Reverse-Engineering."""
 
     _attr_state_class    = SensorStateClass.MEASUREMENT
     _attr_entity_category = EntityCategory.DIAGNOSTIC
     _attr_entity_registry_enabled_default = False
     _attr_icon           = "mdi:help-rhombus-outline"
 
-    def __init__(self, coordinator, entry, device_name, pair_idx: int,
-                 state_attr: str) -> None:
+    def __init__(self, coordinator: AC500Coordinator, entry: ConfigEntry,
+                 pair_idx: int, state_attr: str) -> None:
         super().__init__(coordinator, entry, f"ef04_pair{pair_idx}")
         self._state_attr = state_attr
-        self._attr_name  = f"{device_name} EF04 Pair{pair_idx} (raw)"
+        self._attr_name  = f"EF04 Pair{pair_idx} (raw)"
 
     @property
     def available(self) -> bool:
@@ -211,15 +213,16 @@ class AC500EF04DiagSensor(AC500EntityBase, SensorEntity):
 
 
 class AC500EF04RawSensor(AC500EntityBase, SensorEntity):
-    """Full raw EF04 payload as hex – for payload length and unknown bytes analysis."""
+    """Vollständiger EF04-Rohpayload als Hex – zur Analyse von Länge und unbekannten Bytes."""
 
     _attr_entity_category = EntityCategory.DIAGNOSTIC
     _attr_entity_registry_enabled_default = False
     _attr_icon            = "mdi:format-list-numbered"
 
-    def __init__(self, coordinator, entry, device_name) -> None:
+    def __init__(self, coordinator: AC500Coordinator,
+                 entry: ConfigEntry) -> None:
         super().__init__(coordinator, entry, "ef04_raw_hex")
-        self._attr_name = f"{device_name} EF04 Raw Payload"
+        self._attr_name = "EF04 Raw Payload"
 
     @property
     def available(self) -> bool:
@@ -232,14 +235,15 @@ class AC500EF04RawSensor(AC500EntityBase, SensorEntity):
 
 
 class AC500EF03RawSensor(AC500EntityBase, SensorEntity):
-    """Full raw EF03 payload as hex – characteristic purpose unknown."""
+    """Vollständiger EF03-Rohpayload als Hex – Zweck der Charakteristik noch unbekannt."""
 
     _attr_entity_category = EntityCategory.DIAGNOSTIC
     _attr_icon            = "mdi:help-rhombus-outline"
 
-    def __init__(self, coordinator, entry, device_name) -> None:
+    def __init__(self, coordinator: AC500Coordinator,
+                 entry: ConfigEntry) -> None:
         super().__init__(coordinator, entry, "ef03_raw_hex")
-        self._attr_name = f"{device_name} EF03 Raw Payload"
+        self._attr_name = "EF03 Raw Payload"
 
     @property
     def available(self) -> bool:
@@ -251,16 +255,17 @@ class AC500EF03RawSensor(AC500EntityBase, SensorEntity):
 
 
 class AC500D0FFRawSensor(AC500EntityBase, SensorEntity):
-    """Raw hex value of a d0ff service read-only characteristic (static device identifier)."""
+    """Rohwert einer d0ff-Charakteristik als Hex – statische Gerätekennung."""
 
     _attr_entity_category = EntityCategory.DIAGNOSTIC
     _attr_entity_registry_enabled_default = False
     _attr_icon            = "mdi:filter-cog-outline"
 
-    def __init__(self, coordinator, entry, device_name, char_name: str) -> None:
+    def __init__(self, coordinator: AC500Coordinator, entry: ConfigEntry,
+                 char_name: str) -> None:
         super().__init__(coordinator, entry, f"{char_name}_raw_hex")
         self._char_attr   = f"{char_name}_raw_hex"
-        self._attr_name   = f"{device_name} {char_name.upper()} Raw"
+        self._attr_name   = f"{char_name.upper()} Raw"
 
     @property
     def available(self) -> bool:
